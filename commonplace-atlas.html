@@ -210,6 +210,11 @@ main{min-width:0;padding-block:28px 80px;padding-left:max(20px,env(safe-area-ins
 .chip:hover{border-color:var(--dc,var(--accent))}
 @media (max-width:1000px){.hero{grid-template-columns:minmax(0,1fr)}.wheel svg{max-width:400px}}
 
+/* sync status */
+.sync-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--muted)}
+.sync-dot.ok{background:var(--k-thought)}.sync-dot.learning{background:var(--accent)}.sync-dot.warn{background:var(--mark)}.sync-dot.bad{background:var(--danger)}
+#gh-btn{font-size:13.5px}
+
 /* contribute */
 .cx{width:100%;min-height:150px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-family:var(--f-read);font-size:17px;line-height:1.55;resize:vertical}
 .cx:focus{outline:none;border-color:var(--accent)}
@@ -270,6 +275,7 @@ main{min-width:0;padding-block:28px 80px;padding-left:max(20px,env(safe-area-ins
     <a href="#contribute" id="nav-contrib">Contribute</a>
     <a href="#journal" id="nav-journal">Journal</a>
     <a href="#clips" id="nav-clips">Clippings</a>
+    <button class="btn line" id="gh-btn" data-act="gh" hidden></button>
     <button class="btn primary" data-act="wander"><span class="lab-hide">Wander</span><span aria-hidden="true">↯</span></button>
   </nav>
 </header>
@@ -853,7 +859,7 @@ function renderMain(){
   $("#nav-home").toggleAttribute("aria-current", view.name === "home"); if (view.name === "home") $("#nav-home").setAttribute("aria-current","page");
   $("#nav-journal").toggleAttribute("aria-current", view.name === "journal"); if (view.name === "journal") $("#nav-journal").setAttribute("aria-current","page");
 }
-function render(){ renderTree(); renderMain(); }
+function render(){ renderTree(); renderMain(); updateSyncUI(); }
 
 /* ---------- routing ---------- */
 function route(){
@@ -882,7 +888,7 @@ function writeError(e){
 
 /* ---------- editor ---------- */
 function openEditor(note, topicId, pre = {}){
-  if (!canWrite){ toast(dbState === "off" ? "Open this atlas on claude.ai to save notes." : "Notes can't be saved right now."); return; }
+  if (!canWrite){ if (localMode) return openGhSheet(); toast(dbState === "off" ? "Open this atlas on claude.ai to save notes." : "Notes can't be saved right now."); return; }
   const n = note ? (note.topic && nodes.get(note.topic)) : (topicId && nodes.get(topicId));
   const topicText = n ? labelOf(n) : (note?.topicLabel || "");
   const kind = note?.kind || "learning";
@@ -904,7 +910,7 @@ function findTopic(tText){
   return [...nodes.values()].find(x => labelOf(x).toLowerCase() === t) || [...nodes.values()].find(x => x.name.toLowerCase() === t);
 }
 function openClipEditor(clip, topicId, pre = {}){
-  if (!canWrite){ toast(dbState === "off" ? "Open this atlas on claude.ai to save clippings." : "Clippings can't be saved right now."); return; }
+  if (!canWrite){ if (localMode) return openGhSheet(); toast(dbState === "off" ? "Open this atlas on claude.ai to save clippings." : "Clippings can't be saved right now."); return; }
   const n = clip ? (clip.topic && nodes.get(clip.topic)) : (topicId && nodes.get(topicId));
   const topicText = n ? labelOf(n) : (clip?.topicLabel || "");
   $("#overlay").innerHTML = `<div class="scrim" data-act="close-scrim"><form class="sheet" id="clip-form" role="dialog" aria-modal="true" aria-labelledby="cl-h">
@@ -970,6 +976,8 @@ document.addEventListener("click", async e => {
     case "clip-kind": clipFilter = el.dataset.v; renderMain(); break;
     case "ai-suggest": askClaude(); break;
     case "export": exportBackup(); break;
+    case "gh": openGhSheet(); break;
+    case "gh-off": db.disconnect(); canWrite = false; closeEditor(); render(); toast("This device is disconnected. Your notes stay on GitHub."); break;
     case "import-no": pendingImport = null; renderMain(); break;
     case "import-yes": try{ db.importData(pendingImport.data); pendingImport = null; buildTree(); render(); toast("Backup restored"); }catch(err){ toast(writeError(err)); } break;
     case "file-note": { const t = contributeText.trim(); openEditor(null, el.dataset.topic, {body: t}); if ($("#note-form")) cxPending = true; break; }
@@ -1001,6 +1009,7 @@ document.addEventListener("submit", async e => {
   e.preventDefault();
   if (e.target.id === "note-form") return saveNote(e.target);
   if (e.target.id === "clip-form") return saveClip(e.target);
+  if (e.target.id === "gh-form") return submitGh();
   if (e.target.id === "add-form"){
     const name = $("#add-name").value.trim(); if (!name) return;
     const n = nodes.get(view.id);
@@ -1023,32 +1032,170 @@ document.addEventListener("input", e => {
 });
 
 /* ---------- storage ---------- */
-// Outside claude.ai (the GitHub Pages web app) everything is kept in this browser.
+// Outside claude.ai (the GitHub Pages web app) notes live in atlas.json on the repo's "data" branch.
+// Anyone can read it; a device saves to it once it is connected with a GitHub key that can write to the repo.
 let localMode = false, pendingImport = null;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-function makeLocalDb(){
-  const KEY = "commonplace-atlas-v1";
-  let store = {};
-  try{ store = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }catch(e){ store = {}; }
-  const subs = {};
-  const meta = {fromCache:false, hasPendingWrites:false};
-  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){ throw {code:"quota_exceeded", message:"Browser storage is full"}; } };
+const GH = {owner:"neeshasahl-cpu", repo:"commonplace-atlas", branch:"data", path:"atlas.json"};
+const GH_API = `https://api.github.com/repos/${GH.owner}/${GH.repo}`;
+const TOKEN_KEY = "atlas-gh-token", CACHE_KEY = "atlas-gh-cache", PENDING_KEY = "atlas-gh-pending", OLD_KEY = "commonplace-atlas-v1";
+const lsGet = (k, d) => { try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } };
+const lsSet = (k, v) => { try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+const b64encode = str => { const b = new TextEncoder().encode(str); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+const b64decode = str => new TextDecoder().decode(Uint8Array.from(atob(str.replace(/\s/g, "")), c => c.charCodeAt(0)));
+let syncState = "idle", syncMsg = "";
+function setSync(state, msg){ syncState = state; syncMsg = msg || ""; updateSyncUI(); }
+
+function makeGitHubDb(){
+  let token = lsGet(TOKEN_KEY, null);
+  let remote = (lsGet(CACHE_KEY, null) || {}).data || {};
+  let sha = null, store = {}, pending = lsGet(PENDING_KEY, []), flushing = false, timer = null;
+  const subs = {}, meta = {fromCache:false, hasPendingWrites:false};
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const apply = (s, op) => { const c = s[op.col] || (s[op.col] = {}); if (op.doc) c[op.id] = op.doc; else delete c[op.id]; };
+  const rebuild = () => { store = clone(remote); pending.forEach(op => apply(store, op)); };
+  rebuild();
   const snap = col => { const docs = Object.entries(store[col] || {}).map(([id, d]) => ({id, exists:true, data: () => d, metadata: meta})); return {docs, size: docs.length, empty: !docs.length, metadata: meta, docChanges: () => []}; };
   const emit = col => (subs[col] || []).forEach(f => f(snap(col)));
-  const docRef = (col, id) => ({id,
-    set: async d => { (store[col] || (store[col] = {}))[id] = JSON.parse(JSON.stringify(d)); save(); emit(col); },
-    delete: async () => { if (store[col]) delete store[col][id]; save(); emit(col); }});
+  const emitAll = () => Object.keys(subs).forEach(emit);
+  const headers = raw => { const h = {"Accept": raw ? "application/vnd.github.raw+json" : "application/vnd.github+json"}; if (token) h.Authorization = "Bearer " + token; return h; };
+  const fileUrl = `${GH_API}/contents/${GH.path}?ref=${GH.branch}`;
+
+  async function fetchRemote(){
+    if (token){
+      const r = await fetch(fileUrl, {headers: headers(false), cache: "no-store"});
+      if (r.status === 404){ sha = null; return {}; }
+      if (r.status === 401) throw {code: "bad_token"};
+      if (!r.ok) throw {code: "unavailable"};
+      const j = await r.json(); sha = j.sha;
+      const text = j.encoding === "base64" && j.content ? b64decode(j.content) : await (await fetch(fileUrl, {headers: headers(true), cache: "no-store"})).text();
+      return (JSON.parse(text || "{}").data) || {};
+    }
+    const r = await fetch(fileUrl, {headers: headers(true), cache: "no-store"});
+    if (r.status === 404) return {};
+    if (!r.ok) throw {code: "unavailable"};
+    return (JSON.parse((await r.text()) || "{}").data) || {};
+  }
+  async function refresh(){
+    if (flushing) return;
+    try{
+      remote = await fetchRemote(); lsSet(CACHE_KEY, {data: remote}); rebuild(); emitAll();
+      if (!pending.length) setSync(token ? "saved" : "readonly");
+    }catch(e){
+      if (e.code === "bad_token") setSync("error", "Your GitHub key no longer works. Connect this device again.");
+      else setSync("offline", "Can't reach GitHub. Showing the last copy saved on this device.");
+    }
+  }
+  function schedule(){ clearTimeout(timer); timer = setTimeout(flush, 1200); }
+  async function flush(){
+    if (flushing || !pending.length || !token) return;
+    flushing = true; setSync("saving");
+    const batch = pending.slice();
+    try{
+      for (let attempt = 0; attempt < 4; attempt++){
+        if (sha === null || attempt > 0) remote = await fetchRemote();
+        const next = clone(remote); batch.forEach(op => apply(next, op));
+        const body = {message: `Update atlas (${batch.length} change${batch.length > 1 ? "s" : ""})`, branch: GH.branch,
+          content: b64encode(JSON.stringify({app: "commonplace-atlas", version: 1, updated: new Date().toISOString(), data: next}, null, 1))};
+        if (sha) body.sha = sha;
+        const r = await fetch(`${GH_API}/contents/${GH.path}`, {method: "PUT", headers: {...headers(false), "Content-Type": "application/json"}, body: JSON.stringify(body)});
+        if (r.ok){
+          sha = (await r.json()).content.sha; remote = next;
+          pending = pending.slice(batch.length); lsSet(PENDING_KEY, pending); lsSet(CACHE_KEY, {data: remote});
+          rebuild(); emitAll(); flushing = false; setSync("saved");
+          if (pending.length) schedule();
+          return;
+        }
+        if (r.status === 401 || r.status === 403 || r.status === 404) throw {code: "bad_token"};
+        if (r.status !== 409 && r.status !== 422) throw {code: "unavailable"};
+      }
+      throw {code: "unavailable"};
+    }catch(e){
+      flushing = false;
+      if (e.code === "bad_token") setSync("error", "GitHub refused the save. The key may have expired or may not have write access. Connect this device again. Your changes are kept here until then.");
+      else { setSync("offline", "Not saved to GitHub yet. Your changes are kept on this device and will be saved when the connection returns."); setTimeout(flush, 20000); }
+    }
+  }
+  function write(col, id, doc){
+    if (!token) return Promise.reject({code: "invalid_argument"});
+    const op = {col, id, doc: doc ? clone(doc) : null};
+    pending.push(op); lsSet(PENDING_KEY, pending); apply(store, op); emit(col); setSync("saving"); schedule();
+    return Promise.resolve();
+  }
+  const docRef = (col, id) => ({id, set: d => write(col, id, d), delete: () => write(col, id, null)});
   const colRef = col => ({
     doc: id => docRef(col, id || uid()),
     add: async d => { const r = docRef(col, uid()); await r.set(d); return r; },
     onSnapshot: next => { (subs[col] || (subs[col] = [])).push(next); setTimeout(() => next(snap(col)), 0); return () => { subs[col] = subs[col].filter(f => f !== next); }; }});
-  window.addEventListener("storage", e => { if (e.key === KEY){ try{ store = JSON.parse(e.newValue || "{}") || {}; }catch(_){} Object.keys(subs).forEach(emit); } });
+  function migrateOld(){
+    const old = lsGet(OLD_KEY, null); if (!old) return;
+    for (const col of Object.keys(old)) for (const [id, d] of Object.entries(old[col] || {})) if (!(store[col] && store[col][id])) write(col, id, d);
+    lsSet(OLD_KEY, null);
+  }
+  async function connectToken(t){
+    let r;
+    try{ r = await fetch(GH_API, {headers: {"Accept": "application/vnd.github+json", "Authorization": "Bearer " + t}}); }
+    catch(e){ throw "Couldn't reach GitHub. Check your connection and try again."; }
+    if (r.status === 401) throw "GitHub didn't accept that key. Make sure you copied all of it.";
+    if (r.status === 404) throw "That key can't see the commonplace-atlas repo. Under Repository access, pick commonplace-atlas.";
+    if (!r.ok) throw "GitHub didn't respond properly. Try again in a minute.";
+    token = t; lsSet(TOKEN_KEY, t);
+    await refresh(); migrateOld(); flush();
+  }
+  function disconnect(){ token = null; lsSet(TOKEN_KEY, null); setSync("readonly"); }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !pending.length) refresh(); });
+  setInterval(() => { if (document.visibilityState === "visible" && !pending.length) refresh(); }, 90000);
   return {
     collection: colRef,
     doc: path => { const [c, id] = path.split("/"); return docRef(c, id); },
-    exportJSON: () => JSON.stringify({app:"commonplace-atlas", version:1, exported: new Date().toISOString(), data: store}, null, 2),
-    importData: data => { store = data || {}; save(); Object.keys(subs).forEach(emit); }
+    refresh, flush, connectToken, disconnect,
+    hasToken: () => !!token,
+    exportJSON: () => JSON.stringify({app: "commonplace-atlas", version: 1, exported: new Date().toISOString(), data: store}, null, 2),
+    importData: data => {
+      if (!token) throw {code: "invalid_argument"};
+      for (const col of Object.keys(store)) for (const id of Object.keys(store[col] || {})) if (!(data[col] && data[col][id])) write(col, id, null);
+      for (const col of Object.keys(data || {})) for (const [id, d] of Object.entries(data[col] || {})) write(col, id, d);
+    }
   };
+}
+
+/* ---------- GitHub sign-in ---------- */
+function updateSyncUI(){
+  const b = $("#gh-btn"); if (!b) return;
+  b.hidden = !localMode;
+  if (!localMode) return;
+  const label = !canWrite ? "Sign in to edit" : ({saving: "Saving…", saved: "Saved", offline: "Not saved yet", error: "Can't save"}[syncState] || "Connected");
+  const tone = !canWrite ? "" : ({saving: "learning", saved: "ok", offline: "warn", error: "bad"}[syncState] || "ok");
+  b.innerHTML = `<span class="sync-dot ${tone}"></span>${esc(label)}`;
+  b.title = syncMsg || (canWrite ? "Your changes save to GitHub" : "Connect GitHub on this device to add and edit notes");
+}
+function openGhSheet(){
+  const connected = db && db.hasToken && db.hasToken();
+  $("#overlay").innerHTML = `<div class="scrim" data-act="close-scrim"><form class="sheet" id="gh-form" role="dialog" aria-modal="true" aria-labelledby="gh-h">
+    <h2 id="gh-h">${connected ? "This device saves to GitHub" : "Sign in to edit on this device"}</h2>
+    ${connected ? `<p style="margin:0">Notes, clippings and progress you add here are saved to <code class="mono">atlas.json</code> on the <code class="mono">data</code> branch of your GitHub repo. Anyone with the site link can read them. Only devices with your key can change them.</p>
+      ${syncMsg ? `<div class="banner">${esc(syncMsg)}</div>` : ""}
+      <div class="end"><button type="button" class="btn ghost danger" data-act="gh-off">Disconnect this device</button><button type="button" class="btn primary" data-act="close">Done</button></div>`
+    : `<p style="margin:0">Your notes save to your GitHub repo so they're the same on every device. Anyone with the link can read them. To edit from this device, give it a GitHub key that can only change this one repo. You do this once per device.</p>
+      <ol style="margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px">
+        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">GitHub's new access key page ↗</a> (sign in as <b>${GH.owner}</b> if it asks).</li>
+        <li><b>Token name:</b> anything, like “Atlas on my phone”. <b>Expiration:</b> the longest it offers.</li>
+        <li><b>Repository access:</b> choose <b>Only select repositories</b>, then pick <b>commonplace-atlas</b>.</li>
+        <li><b>Permissions:</b> open Repository permissions, find <b>Contents</b>, set it to <b>Read and write</b>.</li>
+        <li>Click <b>Generate token</b>, copy the key it shows, and paste it below.</li>
+      </ol>
+      <div class="field"><label for="gh-token">GitHub key</label><input id="gh-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"><span class="hint">Stored only in this browser and sent only to GitHub. It can't touch your other repos or your account.</span></div>
+      <div id="gh-err" class="banner" hidden></div>
+      <div class="end"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="submit" class="btn primary" id="gh-go">Connect</button></div>`}
+  </form></div>`;
+  setTimeout(() => $("#gh-token")?.focus(), 0);
+}
+async function submitGh(){
+  const t = $("#gh-token").value.trim(), err = $("#gh-err"), go = $("#gh-go");
+  if (!t){ err.textContent = "Paste your GitHub key first."; err.hidden = false; return; }
+  go.disabled = true; go.textContent = "Connecting…"; err.hidden = true;
+  try{ await db.connectToken(t); canWrite = true; closeEditor(); render(); toast("Connected. This device now saves to GitHub."); }
+  catch(m){ err.textContent = typeof m === "string" ? m : "Couldn't connect. Try again."; err.hidden = false; go.disabled = false; go.textContent = "Connect"; }
 }
 function exportBackup(){
   const blob = new Blob([db.exportJSON()], {type:"application/json"});
@@ -1074,14 +1221,25 @@ function readBackup(file){
 }
 function backupBar(){
   if (!localMode) return "";
-  if (pendingImport) return `<div class="banner confirm" style="justify-content:flex-start">Replace everything saved in this browser with the backup from ${esc(fmtDate(pendingImport.when))} (${esc(pendingImport.summary)})? <button class="btn line danger" data-act="import-yes">Replace</button><button class="btn ghost" data-act="import-no">Cancel</button></div>`;
-  return `<div class="banner" style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center">Your notes are saved in this browser on this device. Download a backup now and then, or to move them to another device.
+  if (!canWrite) return `<div class="banner" style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center">You're reading this atlas. To add or edit notes from this device, sign in with GitHub. <button class="btn line" data-act="gh">Sign in to edit</button></div>`;
+  if (pendingImport) return `<div class="banner confirm" style="justify-content:flex-start">Replace all your saved notes, clippings and progress with the backup from ${esc(fmtDate(pendingImport.when))} (${esc(pendingImport.summary)})? <button class="btn line danger" data-act="import-yes">Replace</button><button class="btn ghost" data-act="import-no">Cancel</button></div>`;
+  return `<div class="banner" style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center">Your notes save to your GitHub repo, so they're the same on every device, and GitHub keeps every past version.
     <span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn line" data-act="export">Download backup</button><label class="btn ghost" for="import-file">Restore a backup</label><input id="import-file" type="file" accept="application/json,.json" hidden></span></div>`;
 }
 async function connect(){
   const C = window.claude;
   if (!C || !C.use){
-    db = makeLocalDb(); localMode = true;
+    db = makeGitHubDb(); localMode = true;
+    canWrite = db.hasToken(); dbState = "ready";
+    setSync(canWrite ? "saving" : "readonly");
+    render();
+    const subscribe = (col, set) => db.collection(col).onSnapshot(s => { set(s); loaded[col] = true; render(); });
+    subscribe("notes", s => { notes = s.docs.map(d => ({id: d.id, ...d.data()})); });
+    subscribe("clips", s => { clips = s.docs.map(d => ({id: d.id, ...d.data()})); });
+    subscribe("progress", s => { progress = new Map(s.docs.map(d => [d.data().topic, d.data().status])); });
+    subscribe("custom", s => { customs = s.docs.map(d => ({id: d.id, ...d.data()})); buildTree(); });
+    await db.refresh(); db.flush();
+    return;
   } else {
     try{ db = await C.use("db"); }catch(e){ db = null; }
     if (!db){ dbState = "off"; render(); return; }

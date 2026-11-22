@@ -22,9 +22,13 @@ It opens in its own window and works offline after the first visit.
 
 ## Where your notes are saved
 
-On the web app, notes, clippings, progress and custom topics are saved **in that browser on that device**. They are never uploaded and are not in this repository. Use **Download backup** on the Journal page to keep a copy or move your notes to another device, and **Restore a backup** to load one. Clearing your browser's site data erases notes that haven't been backed up.
+On the web app, notes, clippings, progress and custom topics are saved to `atlas.json` on this repo's **`data` branch**, so they are the same on every device. They are **public**: anyone with the site link (or this repo) can read them. GitHub keeps every past version in the branch history.
 
-The same file also runs as a Claude artifact on claude.ai, where notes are stored in the artifact's private database and an extra "Ask Claude where it fits" button is available. The two keep separate notes.
+Anyone can read; only devices you connect can write. To edit from a device, tap **Sign in to edit** and paste a fine-grained GitHub access key limited to this repo with **Contents: Read and write**. The app shows the exact steps. The key is stored only in that browser. Changes made while offline are kept on the device and saved when the connection returns.
+
+The data lives on its own branch so saving a note doesn't rebuild the website.
+
+The same source file also runs as a Claude artifact on claude.ai, where notes are stored privately in the artifact's own database and an extra "Ask Claude where it fits" button is available. The two keep separate notes.
 
 ## Files
 

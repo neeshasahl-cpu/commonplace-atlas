@@ -1,7 +1,7 @@
 // Offline support for the Commonplace Atlas web app.
 // Pages: try the network first so updates show up, fall back to the saved copy offline.
 // Other files (icons, fonts): use the saved copy first.
-const CACHE = "atlas-v1";
+const CACHE = "atlas-v2";
 const CORE = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -18,6 +18,8 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
+  // Never cache GitHub's API: notes must always come fresh from the repo.
+  if (new URL(req.url).hostname === "api.github.com") return;
   if (req.mode === "navigate") {
     e.respondWith(
       fetch(req).then(res => {
