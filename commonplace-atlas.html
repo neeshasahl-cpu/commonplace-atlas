@@ -510,6 +510,8 @@ function tokens(s){
 function localSuggest(text){
   const toks = tokens(text), low = " " + text.toLowerCase().replace(/[^a-z0-9]+/g," ") + " ";
   if (!toks.length) return [];
+  const origOf = {};
+  (text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").match(/[a-z0-9]+/g) || []).forEach(w => { const s = stem(w); if (!origOf[s]) origOf[s] = w; });
   const out = [];
   for (const n of nodes.values()){
     if (n.level === 0) continue;
@@ -523,7 +525,7 @@ function localSuggest(text){
     const phrase = " " + n.name.toLowerCase().replace(/[^a-z0-9]+/g," ").trim() + " ";
     if (phrase.length > 5 && low.includes(phrase)) s += 6;
     s += hits.length / Math.max(n._t.length, 1) * 2;
-    out.push({n, s, why: "Matches " + [...new Set(hits)].slice(0,4).join(", ")});
+    out.push({n, s, why: "Matches " + [...new Set(hits.map(h => origOf[h] || h))].slice(0,4).join(", ")});
   }
   return out.sort((a,b) => b.s - a.s || b.n.level - a.n.level).slice(0, 8);
 }
@@ -831,6 +833,7 @@ function journalView(){
     <section class="thead"><div class="eyebrow">Journal</div><h1>Everything you've written down</h1>
       <div class="filters"><div class="seg" role="group" aria-label="Filter by kind">${[["all","All"],...Object.entries(KINDS)].map(([v,l]) => `<button data-act="kind" data-v="${v}" aria-pressed="${kindFilter === v}">${l}</button>`).join("")}</div>
       <input class="search" id="jq" type="search" placeholder="Search your notes" aria-label="Search your notes" value="${esc(q)}"></div>
+      ${backupBar()}
     </section>${body}</div>`;
 }
 
@@ -966,6 +969,9 @@ document.addEventListener("click", async e => {
     case "kind": kindFilter = el.dataset.v; renderMain(); break;
     case "clip-kind": clipFilter = el.dataset.v; renderMain(); break;
     case "ai-suggest": askClaude(); break;
+    case "export": exportBackup(); break;
+    case "import-no": pendingImport = null; renderMain(); break;
+    case "import-yes": try{ db.importData(pendingImport.data); pendingImport = null; buildTree(); render(); toast("Backup restored"); }catch(err){ toast(writeError(err)); } break;
     case "file-note": { const t = contributeText.trim(); openEditor(null, el.dataset.topic, {body: t}); if ($("#note-form")) cxPending = true; break; }
     case "file-clip": { const t = contributeText.trim(), u = findUrl(t); openClipEditor(null, el.dataset.topic, {url: u || "", text: (u ? t.replace(u, "") : t).trim()}); if ($("#clip-form")) cxPending = true; break; }
     case "new-clip": { const t = el.dataset.topic || (view.name === "topic" ? view.id : null); t && nodes.get(t) ? openClipEditor(null, t) : toast("Open a topic to clip something there."); break; }
@@ -1009,6 +1015,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && $("#clip-form")) saveClip($("#clip-form"));
 });
 $("#q").addEventListener("input", renderTree);
+document.addEventListener("change", e => { if (e.target.id === "import-file" && e.target.files[0]) readBackup(e.target.files[0]); });
 let cxTimer;
 document.addEventListener("input", e => {
   if (e.target.id === "jq" || e.target.id === "cq") renderMain();
@@ -1016,16 +1023,74 @@ document.addEventListener("input", e => {
 });
 
 /* ---------- storage ---------- */
+// Outside claude.ai (the GitHub Pages web app) everything is kept in this browser.
+let localMode = false, pendingImport = null;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function makeLocalDb(){
+  const KEY = "commonplace-atlas-v1";
+  let store = {};
+  try{ store = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }catch(e){ store = {}; }
+  const subs = {};
+  const meta = {fromCache:false, hasPendingWrites:false};
+  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){ throw {code:"quota_exceeded", message:"Browser storage is full"}; } };
+  const snap = col => { const docs = Object.entries(store[col] || {}).map(([id, d]) => ({id, exists:true, data: () => d, metadata: meta})); return {docs, size: docs.length, empty: !docs.length, metadata: meta, docChanges: () => []}; };
+  const emit = col => (subs[col] || []).forEach(f => f(snap(col)));
+  const docRef = (col, id) => ({id,
+    set: async d => { (store[col] || (store[col] = {}))[id] = JSON.parse(JSON.stringify(d)); save(); emit(col); },
+    delete: async () => { if (store[col]) delete store[col][id]; save(); emit(col); }});
+  const colRef = col => ({
+    doc: id => docRef(col, id || uid()),
+    add: async d => { const r = docRef(col, uid()); await r.set(d); return r; },
+    onSnapshot: next => { (subs[col] || (subs[col] = [])).push(next); setTimeout(() => next(snap(col)), 0); return () => { subs[col] = subs[col].filter(f => f !== next); }; }});
+  window.addEventListener("storage", e => { if (e.key === KEY){ try{ store = JSON.parse(e.newValue || "{}") || {}; }catch(_){} Object.keys(subs).forEach(emit); } });
+  return {
+    collection: colRef,
+    doc: path => { const [c, id] = path.split("/"); return docRef(c, id); },
+    exportJSON: () => JSON.stringify({app:"commonplace-atlas", version:1, exported: new Date().toISOString(), data: store}, null, 2),
+    importData: data => { store = data || {}; save(); Object.keys(subs).forEach(emit); }
+  };
+}
+function exportBackup(){
+  const blob = new Blob([db.exportJSON()], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `commonplace-atlas-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast("Backup downloaded");
+}
+function readBackup(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const obj = JSON.parse(r.result);
+      if (!obj || obj.app !== "commonplace-atlas" || typeof obj.data !== "object") throw 0;
+      const d = obj.data, count = k => Object.keys(d[k] || {}).length;
+      pendingImport = {data: d, when: obj.exported, summary: `${count("notes")} notes, ${count("clips")} clippings, ${count("progress")} progress marks`};
+      renderMain();
+    }catch(e){ toast("That file isn't a Commonplace Atlas backup."); }
+  };
+  r.readAsText(file);
+}
+function backupBar(){
+  if (!localMode) return "";
+  if (pendingImport) return `<div class="banner confirm" style="justify-content:flex-start">Replace everything saved in this browser with the backup from ${esc(fmtDate(pendingImport.when))} (${esc(pendingImport.summary)})? <button class="btn line danger" data-act="import-yes">Replace</button><button class="btn ghost" data-act="import-no">Cancel</button></div>`;
+  return `<div class="banner" style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center">Your notes are saved in this browser on this device. Download a backup now and then, or to move them to another device.
+    <span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn line" data-act="export">Download backup</button><label class="btn ghost" for="import-file">Restore a backup</label><input id="import-file" type="file" accept="application/json,.json" hidden></span></div>`;
+}
 async function connect(){
   const C = window.claude;
-  if (!C || !C.use){ dbState = "off"; render(); return; }
-  try{ db = await C.use("db"); }catch(e){ db = null; }
-  if (!db){ dbState = "off"; render(); return; }
-  let owner = true;
-  try{ const u = await C.use("user"); if (u) owner = await u.isOwner(); }catch(e){}
-  if (!owner){ dbState = "private"; render(); return; }
+  if (!C || !C.use){
+    db = makeLocalDb(); localMode = true;
+  } else {
+    try{ db = await C.use("db"); }catch(e){ db = null; }
+    if (!db){ dbState = "off"; render(); return; }
+    let owner = true;
+    try{ const u = await C.use("user"); if (u) owner = await u.isOwner(); }catch(e){}
+    if (!owner){ dbState = "private"; render(); return; }
+  }
   canWrite = true; dbState = "ready"; render();
-  try{ sampleApi = await C.use("sample"); }catch(e){ sampleApi = null; }
+  if (!localMode){ try{ sampleApi = await C.use("sample"); }catch(e){ sampleApi = null; } }
   if (view.name === "contribute") renderMain();
   const slow = setTimeout(() => { if (!loaded.notes){ dbState = "slow"; render(); } }, 10000);
   const done = k => { loaded[k] = true; if (k === "notes"){ clearTimeout(slow); if (dbState === "slow") dbState = "ready"; } };
@@ -1039,4 +1104,7 @@ async function connect(){
 buildTree();
 route();
 connect();
+if (!window.claude && "serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 </script>

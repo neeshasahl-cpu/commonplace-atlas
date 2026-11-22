@@ -1,0 +1,1127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2343C4">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Atlas">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Commonplace Atlas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an atlas index on the left (domains → subjects → sub-topics), the open page on the right; a commonplace book threaded through every topic. */
+:root{
+  --paper:#F3F5F8; --surface:#FFFFFF; --sunk:#E8ECF2; --ink:#141C28; --muted:#586374; --line:#D6DCE5;
+  --accent:#2343C4; --accent-ink:#FFFFFF; --accent-soft:#E3E8FB;
+  --mark:#F3CC4A; --mark-ink:#3B2E00;
+  --k-learning:#2343C4; --k-thought:#1F7A5C; --k-question:#B0502A;
+  --danger:#B3261E; --shadow:0 10px 30px rgba(20,28,40,.12);
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-ui:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --f-read:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --bar:56px;
+  --d-NS:#1C8C6E; --d-MA:#3B55D9; --d-CT:#0A7EA4; --d-EN:#C4561B; --d-HM:#D63649; --d-SS:#7A4FE0;
+  --d-HU:#8F6B12; --d-AR:#C22A7A; --d-BF:#2F8A3A; --d-LS:#C96F05; --d-SG:#1E6FC7; --d-ML:#9B3DB8; --d-CS:#5F7A0E; --d-CR:#4A5A7E; --d-ZG:#00838F; --on-d:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --d-NS:#4CC9A4; --d-MA:#8196FF; --d-CT:#4DB8DE; --d-EN:#F08A50; --d-HM:#F4707F; --d-SS:#A98BFF;
+  --d-HU:#D4AE4E; --d-AR:#F06AB0; --d-BF:#6CC877; --d-LS:#F5AE45; --d-SG:#64A8F5; --d-ML:#CF7BEA; --d-CS:#B9D45A; --d-CR:#A9B8DA; --d-ZG:#4DD0E1; --on-d:#0B1020}}
+:root[data-theme="dark"]{
+  --d-NS:#4CC9A4; --d-MA:#8196FF; --d-CT:#4DB8DE; --d-EN:#F08A50; --d-HM:#F4707F; --d-SS:#A98BFF;
+  --d-HU:#D4AE4E; --d-AR:#F06AB0; --d-BF:#6CC877; --d-LS:#F5AE45; --d-SG:#64A8F5; --d-ML:#CF7BEA; --d-CS:#B9D45A; --d-CR:#A9B8DA; --d-ZG:#4DD0E1; --on-d:#0B1020}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0E131A; --surface:#151C26; --sunk:#1B2430; --ink:#E5EAF1; --muted:#98A3B3; --line:#263140;
+  --accent:#8099FF; --accent-ink:#0B1020; --accent-soft:#1D2747;
+  --mark:#E6C14F; --mark-ink:#2A2000;
+  --k-learning:#8099FF; --k-thought:#5FC79E; --k-question:#F0986A;
+  --danger:#FF8A80; --shadow:0 10px 30px rgba(0,0,0,.45); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0E131A; --surface:#151C26; --sunk:#1B2430; --ink:#E5EAF1; --muted:#98A3B3; --line:#263140;
+  --accent:#8099FF; --accent-ink:#0B1020; --accent-soft:#1D2747;
+  --mark:#E6C14F; --mark-ink:#2A2000;
+  --k-learning:#8099FF; --k-thought:#5FC79E; --k-question:#F0986A;
+  --danger:#FF8A80; --shadow:0 10px 30px rgba(0,0,0,.45); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+a{color:inherit}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+.mono{font-family:var(--f-mono);font-size:12px;letter-spacing:.02em}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;height:var(--bar);display:flex;align-items:center;gap:12px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--f-display);font-weight:700;font-size:18px;white-space:nowrap}
+.brand svg{flex:none}
+.nav{display:flex;gap:4px;margin-left:auto;align-items:center}
+.nav a,.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1px solid transparent;background:none;cursor:pointer;text-decoration:none;font-weight:500;font-size:14px;white-space:nowrap}
+.nav a:hover,.btn.ghost:hover{background:var(--sunk)}
+.nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.line{border-color:var(--line);background:var(--surface)}
+.btn.line:hover{border-color:var(--muted)}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+#drawer-btn{display:none}
+
+/* shell */
+.app{display:grid;grid-template-columns:320px minmax(0,1fr);min-height:calc(100vh - var(--bar))}
+.side{position:sticky;top:calc(var(--bar) + env(safe-area-inset-top,0px));height:calc(100vh - var(--bar) - env(safe-area-inset-top,0px));
+  display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface);min-width:0}
+.side-head{padding:14px 14px 10px max(14px,env(safe-area-inset-left,0px));display:grid;gap:8px;border-bottom:1px solid var(--line)}
+.search{width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--paper)}
+.search:focus{border-color:var(--accent);outline:none}
+#tree{overflow:auto;padding:8px 8px 40px max(8px,env(safe-area-inset-left,0px));flex:1}
+#tree ul{list-style:none;margin:0;padding:0}
+.row{display:flex;align-items:center;gap:2px;padding-left:calc(var(--d) * 16px)}
+.tw{width:24px;height:28px;flex:none;border:0;background:none;cursor:pointer;color:var(--muted);display:grid;place-items:center;border-radius:6px}
+.tw:hover{background:var(--sunk)}
+.tw svg{transition:transform .15s}
+.tw[aria-expanded="true"] svg{transform:rotate(90deg)}
+.lbl{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;text-decoration:none;font-size:14px}
+.lbl:hover{background:var(--sunk)}
+.row.on .lbl{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.lbl .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lbl .ct{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.row[style*="--d:0"] .lbl{font-weight:600}
+.code-tag{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);width:22px;flex:none}
+.hit{display:block;padding:7px 10px;border-radius:6px;text-decoration:none}
+.hit:hover{background:var(--sunk)}
+.hit small{display:block;color:var(--muted);font-size:12px}
+.hit mark{background:var(--mark);color:var(--mark-ink);border-radius:2px}
+
+.dot{width:8px;height:8px;border-radius:50%;flex:none;border:1.5px solid var(--muted)}
+.dot.curious{border-color:var(--k-thought);background:transparent}
+.dot.learning{border-color:var(--accent);background:var(--accent)}
+.dot.learned{border-color:var(--mark);background:var(--mark)}
+
+main{min-width:0;padding-block:28px 80px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto;display:grid;gap:32px}
+
+.banner{padding:10px 14px;border-radius:8px;background:var(--sunk);color:var(--muted);font-size:13.5px}
+
+/* home */
+.hero{display:grid;gap:14px;padding-top:8px}
+.hero h1{font-size:clamp(30px,4.6vw,50px);line-height:1.04;font-weight:700;max-width:18ch}
+.hero h1 em{font-style:normal;background:linear-gradient(transparent 58%,var(--mark) 58% 92%,transparent 92%);padding:0 .08em}
+.hero p{font-family:var(--f-read);font-size:18px;color:var(--muted);max-width:58ch;margin:0}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.ledger{display:flex;flex-wrap:wrap;gap:6px 28px;font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 0}
+.ledger b{font-family:var(--f-display);font-size:22px;color:var(--ink);font-weight:700;margin-right:6px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.sec-head h2{font-size:22px}
+.domains{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.dcard{display:grid;gap:8px;align-content:start;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-decoration:none;transition:border-color .15s,transform .15s}
+.dcard:hover{border-color:var(--accent);transform:translateY(-1px)}
+.dcard .top{display:flex;justify-content:space-between;align-items:center}
+.dcard h3{font-size:18px}
+.dcard p{margin:0;color:var(--muted);font-size:13.5px}
+.meter{height:4px;background:var(--sunk);border-radius:4px;overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.meter .l1{background:var(--mark)}.meter .l2{background:var(--accent)}
+.dcard .foot{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* topic page */
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.crumbs a{text-decoration:none}.crumbs a:hover{color:var(--accent);text-decoration:underline}
+.thead{display:grid;gap:12px}
+.thead h1{font-size:clamp(28px,4vw,42px);line-height:1.08}
+.thead .blurb{font-family:var(--f-read);font-size:17px;color:var(--muted);max-width:60ch;margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;padding:3px;background:var(--surface);flex-wrap:wrap}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--sunk);color:var(--ink);font-weight:600}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);text-decoration:none;font-size:14px}
+.chip:hover{border-color:var(--accent)}
+.chip .ct{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.chip.custom{border-style:dashed}
+.addform{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.addform input{flex:1;min-width:180px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
+
+/* notes */
+.notes{display:grid;gap:12px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:8px;min-width:0}
+.note .meta{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12.5px;color:var(--muted)}
+.kind{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:4px;border:1px solid currentColor}
+.kind.learning{color:var(--k-learning)}.kind.thought{color:var(--k-thought)}.kind.question{color:var(--k-question)}
+.note h3{font-size:18px;font-weight:700}
+.note .tlink{text-decoration:none;color:var(--muted)}.note .tlink:hover{color:var(--accent);text-decoration:underline}
+.body{font-family:var(--f-read);font-size:16.5px;line-height:1.6;max-width:68ch;overflow-wrap:anywhere}
+.body p,.body ul,.body ol,.body blockquote{margin:0 0 .6em}
+.body :last-child{margin-bottom:0}
+.body blockquote{border-left:3px solid var(--line);padding-left:12px;color:var(--muted)}
+.body code{font-family:var(--f-mono);font-size:.85em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.body h4{font-family:var(--f-display);font-size:16px;margin:0 0 .4em}
+.body a{color:var(--accent)}
+.note .ops{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.note .ops .btn{padding:4px 10px;font-size:13px}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px;justify-content:flex-end}
+.month{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-top:8px}
+.empty{border:1.5px dashed var(--line);border-radius:10px;padding:22px;display:grid;gap:10px;justify-items:start;color:var(--muted)}
+.empty strong{color:var(--ink);font-family:var(--f-display);font-size:17px}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.filters .search{max-width:320px}
+
+/* editor */
+.scrim{position:fixed;inset:0;z-index:40;background:rgba(10,14,20,.45);display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{width:min(680px,100%);max-height:100%;overflow:auto;background:var(--surface);border-radius:14px;box-shadow:var(--shadow);padding:22px;display:grid;gap:14px}
+.sheet h2{font-size:22px}
+.field{display:grid;gap:6px}
+.field label,.field .lab{font-size:12.5px;font-weight:600;color:var(--muted)}
+.field input,.field textarea{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--paper)}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
+.field textarea{min-height:220px;resize:vertical;font-family:var(--f-read);font-size:16px;line-height:1.55}
+.hint{font-size:12px;color:var(--muted)}
+.sheet .end{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* visual layer: domain colour, wheel map, bands, tiles */
+.hero{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:center;gap:24px 40px}
+.hero-copy{display:grid;gap:14px;align-content:center}
+.wheel{margin:0;display:grid;gap:10px;justify-items:center}
+.wheel svg{width:100%;max-width:470px;height:auto;display:block;overflow:visible}
+.sb{cursor:pointer;transition:opacity .15s;stroke:var(--paper);stroke-width:.6}
+.wheel svg:hover .sb{opacity:.5}
+.wheel svg .sb:hover{opacity:1}
+.sb-code{font-family:var(--f-mono);font-size:10px;font-weight:500;fill:var(--on-d);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.sb-big{font-family:var(--f-display);font-weight:700;font-size:15px;fill:var(--ink);text-anchor:middle;pointer-events:none}
+.sb-small{font-family:var(--f-ui);font-size:10px;fill:var(--muted);text-anchor:middle;pointer-events:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.dcard{border-color:color-mix(in srgb,var(--dc) 26%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--dc) 14%,var(--surface)),var(--surface) 72%)}
+.dcard:hover{border-color:var(--dc)}
+.dc-ico{width:42px;height:42px;border-radius:11px;background:var(--dc);color:var(--on-d);display:grid;place-items:center}
+.meter .l2{background:var(--dc,var(--accent))}
+.band{position:relative;overflow:hidden;padding:26px max(22px,4%);border-radius:16px;background:color-mix(in srgb,var(--dc) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--dc) 24%,var(--line))}
+.band > *{position:relative}
+.band .band-ico{position:absolute;right:-18px;top:-22px;color:var(--dc);opacity:.16;pointer-events:none}
+.band .eyebrow{color:var(--dc)}
+.band-tag{display:inline-flex;align-items:center;gap:8px;justify-self:start;padding:4px 10px 4px 4px;border-radius:999px;background:var(--dc);color:var(--on-d);font-size:12.5px;font-weight:600;text-decoration:none}
+.band-tag span{width:22px;height:22px;display:grid;place-items:center}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.stile{display:grid;gap:8px;padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);text-decoration:none;border-top:3px solid var(--dc);transition:transform .15s,border-color .15s}
+.stile:hover{transform:translateY(-1px);border-color:var(--dc)}
+.stile .row1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.stile strong{font-family:var(--f-display);font-size:16px}
+.stile small{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.chip:hover{border-color:var(--dc,var(--accent))}
+@media (max-width:1000px){.hero{grid-template-columns:minmax(0,1fr)}.wheel svg{max-width:400px}}
+
+/* contribute */
+.cx{width:100%;min-height:150px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-family:var(--f-read);font-size:17px;line-height:1.55;resize:vertical}
+.cx:focus{outline:none;border-color:var(--accent)}
+.sugs{display:grid;gap:10px}
+.sug{display:flex;gap:10px 16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dc)}
+.sug-main{display:grid;gap:3px;min-width:0;flex:1 1 260px}
+.sug strong{font-family:var(--f-display);font-size:17px}
+.sug small{color:var(--muted);font-size:13px}
+.sug .crumbs{font-size:12px}
+.sug-ops{display:flex;gap:6px;flex-wrap:wrap}
+.sug-ops .btn{padding:6px 11px;font-size:13.5px}
+.ai-tag{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+
+/* clippings */
+.clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.clip{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:8px;align-content:start;min-width:0}
+.clip .src{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);min-width:0}
+.clip .src span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fav{width:18px;height:18px;flex:none;border-radius:4px;display:grid;place-items:center;background:var(--sunk);font-family:var(--f-display);font-size:11px;font-weight:700;color:var(--ink)}
+.clip h3{font-size:16.5px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.clip h3 a{text-decoration:none}.clip h3 a:hover{color:var(--accent);text-decoration:underline}
+.clip blockquote{margin:0;font-family:var(--f-read);font-size:15.5px;line-height:1.55;border-left:3px solid var(--mark);padding-left:12px;overflow-wrap:anywhere;white-space:pre-wrap}
+.clip .cnote{font-size:13.5px;color:var(--muted);overflow-wrap:anywhere}
+.clip .meta{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:var(--muted)}
+.clip .meta a{text-decoration:none}.clip .meta a:hover{color:var(--accent);text-decoration:underline}
+.clip .ops{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
+.clip .ops .btn{padding:4px 10px;font-size:13px}
+.kind.link{color:var(--accent)}.kind.clipping{color:var(--k-question)}
+.field textarea.short{min-height:110px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:8px;font-size:14px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  #drawer-btn{display:inline-flex}
+  .side{position:fixed;z-index:35;top:0;left:0;bottom:0;height:auto;width:min(88vw,340px);transform:translateX(-102%);transition:transform .2s;box-shadow:var(--shadow);
+    padding-top:env(safe-area-inset-top,0px)}
+  .side.open{transform:none}
+  .nav .lab-hide{display:none}
+  .brand span{display:none}
+}
+@media (max-width:420px){ .nav a,.btn{padding:7px 9px} }
+.nav{min-width:0;overflow-x:auto;scrollbar-width:none}
+@media (max-width:640px){ #nav-home{display:none} .nav a{font-size:13.5px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<header class="bar">
+  <button class="btn ghost" id="drawer-btn" data-act="drawer" aria-label="Show topics">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg> Topics
+  </button>
+  <a class="brand" href="#home" aria-label="Commonplace Atlas home">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--accent)" stroke-width="2.2"/><path d="M3 16h26M16 3c-5 4-5 22 0 26M16 3c5 4 5 22 0 26" fill="none" stroke="var(--accent)" stroke-width="1.6"/><circle cx="22" cy="10" r="3.2" fill="var(--mark)"/></svg>
+    <span>Commonplace Atlas</span>
+  </a>
+  <nav class="nav">
+    <a href="#home" id="nav-home">Atlas</a>
+    <a href="#contribute" id="nav-contrib">Contribute</a>
+    <a href="#journal" id="nav-journal">Journal</a>
+    <a href="#clips" id="nav-clips">Clippings</a>
+    <button class="btn primary" data-act="wander"><span class="lab-hide">Wander</span><span aria-hidden="true">↯</span></button>
+  </nav>
+</header>
+
+<div class="app">
+  <aside class="side" id="side" aria-label="Topic index">
+    <div class="side-head">
+      <input class="search" id="q" type="search" placeholder="Search 1,000+ topics" autocomplete="off" aria-label="Search topics">
+      <div class="eyebrow" id="side-count">Index</div>
+    </div>
+    <div id="tree"></div>
+  </aside>
+  <main id="main"></main>
+</div>
+<div id="overlay"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* ---------- The atlas: domains → subjects → sub-topics ---------- */
+const DOMAINS = [
+ {code:"NS",name:"Natural Sciences",blurb:"How matter, energy, life and the cosmos work.",s:[
+  ["Physics","Classical mechanics|Electromagnetism|Thermodynamics|Statistical mechanics|Optics|Waves and acoustics|Special relativity|General relativity|Quantum mechanics|Quantum field theory|Particle physics|Nuclear physics|Condensed matter physics|Fluid dynamics|Plasma physics|Biophysics"],
+  ["Chemistry","Atomic structure|Chemical bonding|The periodic table|Stoichiometry|Thermochemistry|Chemical kinetics|Chemical equilibrium|Acids and bases|Electrochemistry|Organic chemistry|Inorganic chemistry|Physical chemistry|Analytical chemistry|Biochemistry|Polymer chemistry|Green chemistry"],
+  ["Biology","Cell biology|Genetics|Molecular biology|Evolution|Microbiology|Botany|Zoology|Developmental biology|Immunology|Neuroscience|Marine biology|Mycology|Virology|Bioinformatics|Synthetic biology|Taxonomy and systematics"],
+  ["Earth Sciences","Geology|Plate tectonics|Mineralogy|Volcanology|Seismology|Meteorology|Climatology|Oceanography|Hydrology|Glaciology|Soil science|Paleontology|Geomorphology|Natural hazards"],
+  ["Astronomy & Space","The Solar System|Stars and stellar evolution|Galaxies|Cosmology|Black holes|Exoplanets|Astrobiology|Observational astronomy|Telescopes|Dark matter and dark energy|Rocketry|History of space exploration|Space missions"],
+  ["Ecology & Environment","Ecosystems|Biodiversity|Population ecology|Food webs|Conservation biology|Climate change|Pollution|Sustainability|Wildlife|Forests|Oceans and reefs|Wetlands|Environmental policy"]]},
+ {code:"MA",name:"Mathematics & Logic",blurb:"The formal languages of pattern, quantity, structure and proof.",s:[
+  ["Foundations","Set theory|Proof techniques|Mathematical logic|Category theory|Number systems|Infinity"],
+  ["Algebra","Arithmetic|Elementary algebra|Linear algebra|Abstract algebra|Group theory|Rings and fields|Galois theory|Representation theory"],
+  ["Analysis","Calculus|Real analysis|Complex analysis|Differential equations|Functional analysis|Measure theory|Fourier analysis|Numerical analysis"],
+  ["Geometry & Topology","Euclidean geometry|Trigonometry|Analytic geometry|Non-Euclidean geometry|Differential geometry|Topology|Knot theory|Fractals"],
+  ["Discrete Mathematics","Combinatorics|Graph theory|Number theory|Game theory|Information theory|Recurrence relations|Mathematics of cryptography"],
+  ["Probability & Statistics","Probability theory|Descriptive statistics|Inferential statistics|Bayesian statistics|Regression|Experimental design|Time series|Stochastic processes|Causal inference"],
+  ["Logic & Reasoning","Propositional logic|Predicate logic|Modal logic|Logical fallacies|Paradoxes|Computability|Gödel's incompleteness theorems"]]},
+ {code:"CT",name:"Computing & Technology",blurb:"Building, programming and reasoning about machines.",s:[
+  ["Programming","Programming fundamentals|Data structures|Algorithms|Python|JavaScript|TypeScript|Rust|Go|C and C++|Java|Functional programming|Object-oriented programming|Concurrency|Regular expressions"],
+  ["Software Engineering","Version control|Testing|Code review|Design patterns|Software architecture|APIs|DevOps|Continuous integration|Debugging|Documentation|Agile and Scrum|Technical debt"],
+  ["Artificial Intelligence","Machine learning|Deep learning|Neural networks|Large language models|Reinforcement learning|Computer vision|Natural language processing|AI safety and alignment|AI ethics|Prompt engineering|Robotics|Generative AI|Transformers and attention|Diffusion models|Multimodal models|AI agents|Retrieval and embeddings|Fine-tuning|Interpretability|AI evaluations and benchmarks|AI hardware and chips|History of AI"],
+  ["Data","Databases|SQL|Data engineering|Data analysis|Data visualization|Big data|Data science|Spreadsheets"],
+  ["Web & Mobile","HTML|CSS|Frontend frameworks|Backend development|Web accessibility|Web performance|Mobile apps|Web design"],
+  ["Systems & Networks","Operating systems|Computer networks|How the Internet works|Cloud computing|Distributed systems|Linux|Compilers|Computer architecture"],
+  ["Security & Privacy","Cryptography|Network security|Application security|Privacy|Authentication|Threat modeling|Digital hygiene"],
+  ["Hardware & Making","Microcontrollers|Raspberry Pi|3D printing|Electronic circuits|Semiconductors|Quantum computing"],
+  ["AI Governance & Policy","AI regulation|EU AI Act|US AI policy|China's AI governance|AI risk management frameworks|Frontier AI safety policy|AI audits and third-party evaluation|Algorithmic accountability|Model transparency and documentation|AI and copyright|AI and privacy law|AI and the labor market|Compute governance|Open versus closed models|AI in the public sector|AI in elections and misinformation|Military AI|International AI cooperation|AI standards bodies|Responsible AI in companies"]]},
+ {code:"EN",name:"Engineering",blurb:"Applying science to design things that work in the physical world.",s:[
+  ["Mechanical","Statics and dynamics|Machine design|Engines|Heat transfer|Mechatronics|Manufacturing|Computer-aided design"],
+  ["Electrical","Circuit theory|Signal processing|Power systems|Control systems|Telecommunications|Embedded systems|Electric motors"],
+  ["Civil","Structural engineering|Bridges|Geotechnical engineering|Transportation engineering|Water resources|Urban infrastructure|Construction management"],
+  ["Chemical & Process","Process design|Reaction engineering|Separation processes|Petrochemicals|Pharmaceutical manufacturing|Food engineering"],
+  ["Aerospace","Aerodynamics|Flight mechanics|Propulsion|Spacecraft design|Avionics|Drones"],
+  ["Materials Science","Metals|Ceramics|Polymers|Composites|Nanomaterials|Semiconductor materials|Materials testing"],
+  ["Energy","Solar power|Wind power|Nuclear power|Batteries and storage|The electric grid|Hydrogen|Fossil fuels"],
+  ["Biomedical","Medical devices|Prosthetics|Biomaterials|Tissue engineering|Medical imaging"]]},
+ {code:"CS",name:"Climate & Sustainability",blurb:"Decarbonizing the economy, pricing carbon, and financing a livable planet.",s:[
+  ["Climate Science & Policy","The greenhouse effect|Carbon budgets|IPCC reports|Climate modeling|Tipping points|The Paris Agreement|COP negotiations|Nationally determined contributions|Climate adaptation|Loss and damage|Climate justice|Methane"],
+  ["Carbon Markets","Carbon pricing|Carbon taxes|Compliance carbon markets|EU Emissions Trading System|China's national ETS|Voluntary carbon market|Carbon offsets and credits|Carbon removal credits|Nature-based credits|REDD+|Article 6 of the Paris Agreement|Additionality and permanence|Measurement, reporting and verification|Carbon registries|Integrity standards (ICVCM and VCMI)|Carbon border adjustment|Internal carbon pricing"],
+  ["Energy Transition","Decarbonization pathways|Net-zero targets|Electrification|Renewable energy integration|Grid modernization|Long-duration energy storage|Green hydrogen|Carbon capture and storage|Direct air capture|Electric vehicles|Heat pumps|Energy efficiency|Nuclear in the transition|Critical minerals|Hard-to-abate sectors|Green steel and cement|Sustainable aviation fuel|Just transition|Energy security|Energy policy and subsidies"],
+  ["Sustainable Finance","ESG investing|ESG ratings|Green bonds|Social and sustainability bonds|Sustainability-linked loans|Transition finance|Climate finance for developing countries|Blended finance|Impact investing|Climate risk disclosure|TCFD and ISSB standards|EU sustainable finance taxonomy|SFDR|Climate stress testing|Stranded assets|Greenwashing|Shareholder engagement|Net-zero alliances|Central banks and climate"],
+  ["Corporate Sustainability","Greenhouse gas accounting|Scope 1, 2 and 3 emissions|Science-based targets|Life cycle assessment|Sustainability reporting (CSRD)|Supply chain decarbonization|Circular economy|Sustainable procurement|Renewable energy procurement (PPAs)|Materiality assessment"],
+  ["Nature & Biodiversity","Biodiversity finance|Nature-related disclosures (TNFD)|Ecosystem services|Deforestation|Rewilding|Regenerative agriculture|Ocean conservation|Kunming-Montreal biodiversity framework"]]},
+ {code:"HM",name:"Health & Medicine",blurb:"The human body, how it fails, and how to care for it.",s:[
+  ["The Human Body","Anatomy|Physiology|Skeletal system|Muscular system|Cardiovascular system|Respiratory system|Digestive system|Nervous system|Endocrine system|Immune system|Reproductive system|Skin"],
+  ["Medicine","Diagnosis|Pharmacology|Cardiology|Oncology|Neurology|Pediatrics|Geriatrics|Infectious diseases|Surgery|Emergency medicine|Dermatology|Medical genetics"],
+  ["Mental Health","Anxiety|Depression|Stress|Sleep|Trauma|ADHD|Approaches to therapy|Mindfulness|Emotional regulation"],
+  ["Nutrition","Macronutrients|Micronutrients|Hydration|Diets|Gut health|Metabolism|Food science"],
+  ["Fitness","Strength training|Cardio|Flexibility and mobility|Running|Yoga|Recovery|Sports science"],
+  ["Public Health","Epidemiology|Vaccines|Global health|Health policy|Health equity|Pandemics"],
+  ["Healthy Living","Longevity|Ergonomics|Preventive care|First aid"]]},
+ {code:"SS",name:"Social Sciences",blurb:"How people think, organize, trade, govern and live together.",s:[
+  ["Psychology","Cognitive psychology|Developmental psychology|Social psychology|Personality|Behavioral psychology|Positive psychology|Cognitive biases|Motivation|Emotions|Perception"],
+  ["Sociology","Social structure|Culture|Family|Social class|Race and ethnicity|Gender|Social movements|Urban sociology|Deviance|Media and society"],
+  ["Economics","Microeconomics|Macroeconomics|Behavioral economics|Monetary policy|Fiscal policy|International trade|Development economics|Labor economics|Economic history|Inflation|Market structures|Supply and demand|Elasticity|Economic indicators (GDP and CPI)|Economic growth|Business cycles|Unemployment|Interest rates|Central banking|Exchange rates|Balance of payments|Public debt|Taxation|Financial crises|Inequality|Poverty|Public economics|Welfare economics|Environmental economics|Health economics|Urban economics|Industrial organization|Econometrics|Mechanism design|Auction theory|Behavioral finance|Institutional economics|Economics of innovation|Digital and platform economics|Economics of AI|Economics of education|Schools of economic thought|Classical economics|Keynesian economics|Austrian economics|Monetarism|Marxian economics|Modern monetary theory|Famous economists"],
+  ["Political Science","Political theory|Democracy|Comparative politics|Elections|Political ideologies|Public administration|Public policy|Geopolitics|Constitutions and constitutional design|Separation of powers|Parliamentary systems|Presidential systems|Federalism|Electoral systems|Voting behavior|Political parties|Political polarization|Populism|Nationalism|Authoritarianism|Democratic backsliding|Revolutions|Civil society|Lobbying and interest groups|Political communication|Corruption and governance|State capacity|Welfare states|Local government|Political economy|Liberalism|Conservatism|Socialism|Marxism|Libertarianism|Anarchism|Feminist political theory|Green politics|Civil rights movements"],
+  ["Law","Constitutional law|Criminal law|Contract law|Tort law|Property law|Human rights|International law|Intellectual property|Legal systems of the world"],
+  ["International Relations","Diplomacy|International organizations|Conflict and peace|Globalization|Foreign policy|Security studies|Theories of international relations|Great power competition|US-China relations|Nuclear proliferation|Arms control|Sanctions|Peacekeeping|Humanitarian intervention|Terrorism and counterterrorism|Soft power|The Global South|Refugees and asylum|Cyber statecraft|Energy geopolitics"],
+  ["Anthropology","Cultural anthropology|Archaeology|Biological anthropology|Ethnography|Kinship|Rituals"],
+  ["Human Geography","Population|Migration|Urbanization|Cartography|Regions of the world|Countries and capitals"],
+  ["Linguistics","Phonetics|Syntax|Semantics|Pragmatics|Sociolinguistics|Historical linguistics|Language acquisition|Writing systems|Phonology|Morphology|Discourse analysis|Psycholinguistics|Neurolinguistics|Computational linguistics|Corpus linguistics|Language universals|Linguistic relativity|Origins of language|Language families|Indo-European languages|Sino-Tibetan languages|Afro-Asiatic languages|Niger-Congo languages|Austronesian languages|Dravidian languages|Endangered languages|Dialects and accents|Pidgins and creoles|Bilingualism|Language and identity|Translation and interpretation|Lexicography|Forensic linguistics"]]},
+ {code:"CR",name:"Countries & Regions",blurb:"Every country on Earth, the regions they belong to, and the blocs that tie them together.",s:[
+  ["East Asia","China|Japan|South Korea|North Korea|Mongolia|Taiwan|Hong Kong|Macau"],
+  ["Southeast Asia","Brunei|Cambodia|Indonesia|Laos|Malaysia|Myanmar|Philippines|Singapore|Thailand|Timor-Leste|Vietnam"],
+  ["South Asia","Afghanistan|Bangladesh|Bhutan|India|Maldives|Nepal|Pakistan|Sri Lanka"],
+  ["Central Asia","Kazakhstan|Kyrgyzstan|Tajikistan|Turkmenistan|Uzbekistan"],
+  ["Middle East","Bahrain|Cyprus|Iran|Iraq|Israel|Jordan|Kuwait|Lebanon|Oman|Palestine|Qatar|Saudi Arabia|Syria|Turkey|United Arab Emirates|Yemen"],
+  ["North Africa","Algeria|Egypt|Libya|Morocco|Sudan|Tunisia"],
+  ["West Africa","Benin|Burkina Faso|Cabo Verde|Côte d'Ivoire|Gambia|Ghana|Guinea|Guinea-Bissau|Liberia|Mali|Mauritania|Niger|Nigeria|Senegal|Sierra Leone|Togo"],
+  ["Central Africa","Cameroon|Central African Republic|Chad|Republic of the Congo|Democratic Republic of the Congo|Equatorial Guinea|Gabon|São Tomé and Príncipe"],
+  ["East Africa","Burundi|Comoros|Djibouti|Eritrea|Ethiopia|Kenya|Madagascar|Mauritius|Rwanda|Seychelles|Somalia|South Sudan|Tanzania|Uganda"],
+  ["Southern Africa","Angola|Botswana|Eswatini|Lesotho|Malawi|Mozambique|Namibia|South Africa|Zambia|Zimbabwe"],
+  ["Western Europe","Andorra|Austria|Belgium|France|Germany|Ireland|Liechtenstein|Luxembourg|Monaco|Netherlands|Switzerland|United Kingdom"],
+  ["Northern Europe","Denmark|Estonia|Finland|Iceland|Latvia|Lithuania|Norway|Sweden"],
+  ["Southern Europe","Albania|Bosnia and Herzegovina|Croatia|Greece|Italy|Kosovo|Malta|Montenegro|North Macedonia|Portugal|San Marino|Serbia|Slovenia|Spain|Vatican City"],
+  ["Eastern Europe & Caucasus","Armenia|Azerbaijan|Belarus|Bulgaria|Czechia|Georgia|Hungary|Moldova|Poland|Romania|Russia|Slovakia|Ukraine"],
+  ["North America","Canada|Mexico|United States|Greenland"],
+  ["Central America & Caribbean","Antigua and Barbuda|Bahamas|Barbados|Belize|Costa Rica|Cuba|Dominica|Dominican Republic|El Salvador|Grenada|Guatemala|Haiti|Honduras|Jamaica|Nicaragua|Panama|Puerto Rico|Saint Kitts and Nevis|Saint Lucia|Saint Vincent and the Grenadines|Trinidad and Tobago"],
+  ["South America","Argentina|Bolivia|Brazil|Chile|Colombia|Ecuador|Guyana|Paraguay|Peru|Suriname|Uruguay|Venezuela"],
+  ["Oceania","Australia|Fiji|Kiribati|Marshall Islands|Micronesia|Nauru|New Zealand|Palau|Papua New Guinea|Samoa|Solomon Islands|Tonga|Tuvalu|Vanuatu"],
+  ["Polar Regions & Oceans","Antarctica|The Arctic|Pacific Ocean|Atlantic Ocean|Indian Ocean|Southern Ocean"],
+  ["Blocs & Alliances","United Nations|European Union|African Union|ASEAN|Gulf Cooperation Council|Mercosur|BRICS|G7 and G20|NATO|Commonwealth of Nations|OPEC|SAARC"]]},
+ {code:"HU",name:"Humanities",blurb:"What people have believed, remembered, argued and written.",s:[
+  ["Philosophy","Metaphysics|Epistemology|Ethics|Philosophy of mind|Political philosophy|Aesthetics|Existentialism|Stoicism|Eastern philosophy|Philosophy of science|Philosophy of language"],
+  ["World History","Prehistory|Ancient Mesopotamia|Ancient Egypt|Ancient Greece|Ancient Rome|Ancient India|Ancient China|Medieval Europe|Islamic Golden Age|Mongol Empire|The Renaissance|Age of Exploration|Industrial Revolution|World War I|World War II|The Cold War|Decolonization"],
+  ["Regional History","History of Africa|History of Asia|History of Europe|History of the Americas|History of the Middle East|History of Oceania|History of science|History of technology"],
+  ["Religion & Spirituality","Comparative religion|Hinduism|Buddhism|Christianity|Islam|Judaism|Sikhism|Jainism|Taoism|Confucianism|Indigenous religions|Meditation traditions"],
+  ["Literature","Poetry|The novel|Short stories|Drama|Literary theory|Classics|World literature|Science fiction|Fantasy|Mystery and crime|Children's literature"],
+  ["Mythology & Folklore","Greek mythology|Norse mythology|Egyptian mythology|Hindu mythology|Celtic mythology|Mesoamerican mythology|Japanese folklore|Fairy tales"],
+  ["Languages","English|Spanish|French|German|Mandarin Chinese|Japanese|Hindi|Arabic|Portuguese|Korean|Sign languages|Constructed languages|Etymology"]]},
+ {code:"AR",name:"Arts & Design",blurb:"Making and reading images, sound, story, space and form.",s:[
+  ["Visual Arts","Drawing|Painting|Sculpture|Printmaking|Art history|Modern art|Contemporary art|Color theory|Illustration|Calligraphy"],
+  ["Music","Music theory|Rhythm|Harmony|Composition|Piano|Guitar|Singing|Classical music|Jazz|Rock|Hip-hop|Electronic music|World music|Music production"],
+  ["Film & Media","Film history|Screenwriting|Cinematography|Film editing|Animation|Documentary|Television|Podcasting"],
+  ["Performing Arts","Acting|Theatre|Dance|Ballet|Opera|Stand-up comedy|Improv"],
+  ["Design","Graphic design|Typography|UX design|Product design|Fashion design|Interior design|Industrial design|Branding"],
+  ["Architecture","Architectural history|Architectural styles|Urban planning|Landscape architecture|Sustainable architecture"],
+  ["Photography","Camera basics|Photographic composition|Lighting|Portrait photography|Landscape photography|Photo editing"],
+  ["Writing","Creative writing|Fiction writing|Poetry writing|Essay writing|Journalism|Copywriting|Technical writing"],
+  ["Art History","Prehistoric art|Ancient Egyptian art|Greek and Roman art|Byzantine art|Islamic art|Medieval and Gothic art|Renaissance art|Baroque|Rococo|Neoclassicism|Romanticism|Realism|Impressionism|Post-Impressionism|Art Nouveau|Expressionism|Cubism|Futurism|Dada|Surrealism|Bauhaus|Abstract Expressionism|Pop Art|Minimalism|Conceptual art|Street art|Chinese painting|Japanese ukiyo-e|Indian and Mughal painting|African art|Indigenous art of the Americas|Contemporary global art|Women in art history|Museums and curation"],
+  ["Music Genres","Blues|Jazz styles|Gospel|Soul and R&B|Funk|Disco|Rock and roll|Punk|Heavy metal|Indie and alternative|Pop|Hip-hop and rap|Reggae and dancehall|Electronic dance music|House|Techno|Ambient|Country|Folk|Latin music|Salsa|Bossa nova|K-pop|J-pop|Afrobeat|Afrobeats|Bollywood and film music|Hindustani classical|Carnatic classical|Qawwali and Sufi music|Western classical periods|Baroque music|Romantic era music|Opera traditions|Film scores|Lo-fi"]]},
+ {code:"BF",name:"Business & Money",blurb:"How value is created, organized, traded and kept.",s:[
+  ["Entrepreneurship","Startups|Business models|Fundraising|Product-market fit|Lean startup|Small business"],
+  ["Management","Leadership|Strategy|Operations|Project management|Organizational behavior|Hiring|Negotiation|Decision making"],
+  ["Marketing & Sales","Branding|Digital marketing|Search engine optimization|Content marketing|Social media|Advertising|Consumer behavior|Sales"],
+  ["Finance","Corporate finance|Accounting|Financial statements|Banking|Financial markets|Investing basics|Risk management|Blockchain"],
+  ["Personal Finance","Budgeting|Saving|Debt|Credit|Retirement planning|Taxes|Insurance|Financial independence"],
+  ["Economy & Industry","Supply chains|Real estate|E-commerce|Industries of the world|Business history"]]},
+ {code:"LS",name:"Everyday Life",blurb:"The practical skills of feeding, housing, connecting and getting around.",s:[
+  ["Cooking & Drink","Cooking techniques|Baking|Knife skills|World cuisines|Indian cuisine|Italian cuisine|Japanese cuisine|Mexican cuisine|Fermentation|Coffee|Tea|Wine|Meal planning"],
+  ["Home","Cleaning and organizing|Home repair|Plumbing basics|Electrical basics|Interior decorating|Minimalism"],
+  ["Gardening","Vegetable gardening|Houseplants|Composting|Permaculture|Trees and shrubs|Flowers"],
+  ["Relationships","Friendship|Romantic relationships|Parenting|Family dynamics|Conflict resolution|Empathy"],
+  ["Communication","Public speaking|Active listening|Storytelling|Writing emails|Persuasion|Difficult conversations"],
+  ["Travel","Trip planning|Budget travel|Travel safety|Cultural etiquette|Packing|Solo travel"],
+  ["Crafts & Making","Knitting|Sewing|Woodworking|Pottery|Origami|Jewelry making|Leatherwork"],
+  ["Animals & Pets","Dogs|Cats|Birds|Aquariums|Animal behavior|Pet health"]]},
+ {code:"SG",name:"Sports & Games",blurb:"Play, competition and the outdoors.",s:[
+  ["Team Sports","Association football|American football|Basketball|Cricket|Baseball|Rugby|Hockey|Volleyball"],
+  ["Individual Sports","Tennis|Golf|Swimming|Cycling|Athletics|Martial arts|Boxing|Gymnastics|Skiing|Surfing|Climbing"],
+  ["Mind Games","Chess|Go|Poker|Bridge|Puzzles|Crosswords|Sudoku"],
+  ["Tabletop","Strategy board games|Board game design|Tabletop role-playing games|Card games"],
+  ["Video Games","Game design|History of video games|Esports|Game development|Speedrunning"],
+  ["Outdoors","Hiking|Camping|Backpacking|Wilderness navigation|Fishing|Birdwatching|Stargazing|Sailing"],
+  ["Sport & Culture","Olympic history|Sports psychology|Sports analytics|Coaching"]]},
+ {code:"ML",name:"Mind & Learning",blurb:"Learning how to learn, think, create and keep what you know.",s:[
+  ["Learning Science","Spaced repetition|Retrieval practice|Interleaving|Metacognition|Deliberate practice|Growth mindset|The learning styles myth"],
+  ["Memory & Notes","Mnemonics|Memory palace|Working memory|Note-taking systems|Zettelkasten|Commonplace books|Personal knowledge management"],
+  ["Thinking","Critical thinking|Mental models|First-principles thinking|Systems thinking|Probabilistic thinking|Problem solving|Decision frameworks"],
+  ["Creativity","Brainstorming|Divergent thinking|Creative habits|Lateral thinking|Inspiration"],
+  ["Productivity","Time management|Deep work|Goal setting|Habits|Getting things done|Energy management|Procrastination"],
+  ["Self & Purpose","Self-awareness|Values|Journaling|Resilience|Meaning of life|Personal growth"],
+  ["Education","Teaching|Pedagogy|Self-directed learning|Online learning|History of education"]]},
+ {code:"ZG",name:"Zeitgeist",blurb:"The spirit of the times: what people are talking about, making, worrying over and hoping for right now.",s:[
+  ["Ideas of the Moment","The attention economy|The loneliness epidemic|Techno-optimism|Degrowth|Effective altruism|Longtermism|Abundance agenda|Post-growth and wellbeing economics|Polycrisis|Doomscrolling|The meaning crisis|Slow living|Digital minimalism|Right to disconnect"],
+  ["AI in Culture","AI art debates|AI companions|AI in schools|Deepfakes|AI and creative work|Fear of job automation|AI hype cycles|Synthetic media|Human-made labels"],
+  ["Internet Culture","Memes|Viral trends|Internet slang|Online communities|Fandoms|Parasocial relationships|Cancel culture|Main character energy|Brainrot|Group chats|Niche internet subcultures"],
+  ["Creator Economy","Influencers|Short-form video|Podcasts boom|Newsletters|Livestreaming|Creator burnout|Brand deals|Fan subscriptions"],
+  ["Pop Culture Now","Streaming wars|Prestige TV|Franchise fatigue|Celebrity culture|Award seasons|Music charts and virality|Nostalgia cycles|Reboots and remakes|Fan theories"],
+  ["Aesthetics & Style","Quiet luxury|Y2K revival|Cottagecore|Dark academia|Minimalist design trends|Thrifting and resale|Sustainable fashion|Streetwear|Clean girl aesthetic|Maximalism"],
+  ["Work & Money Now","Remote and hybrid work|Four-day week|Quiet quitting|The gig economy|Side hustles|Cost of living|Housing affordability|FIRE movement|Return to office|Job hugging"],
+  ["Generations","Gen Alpha|Gen Z|Millennials|Gen X|Baby Boomers|Generational wealth gap|Intergenerational conflict"],
+  ["Society & Values","Political polarization online|Misinformation|Trust in institutions|Mental health awareness|Wellness culture|Sober curious movement|Climate anxiety|Urbanism and fifteen-minute cities|Identity and belonging|Digital privacy concerns"],
+  ["Reading the Times","Trend forecasting|Cultural criticism|News literacy|Signals versus noise|How ideas spread|Moral panics|Hype cycles|Historical zeitgeists"]]}
+];
+
+/* ---------- state ---------- */
+let nodes = new Map(), roots = [], leafList = [];
+let notes = [], progress = new Map(), customs = [], clips = [];
+let clipFilter = "all";
+let sampleApi = null, contributeText = "", aiSug = null, aiState = "idle", aiMsg = "", cxPending = false;
+let db = null, canWrite = false, dbState = "connecting"; // connecting | ready | slow | off | private
+const loaded = {notes:false, progress:false, custom:false, clips:false};
+let view = {name:"home", id:null};
+let kindFilter = "all", pendingDelete = null, pendingRm = null;
+let expanded = new Set();
+try{ expanded = new Set(JSON.parse(localStorage.getItem("atlas-open")||"[]")); }catch(e){}
+const KINDS = {learning:"Learning", thought:"Thought", question:"Question"};
+const STATUSES = [["","Not started"],["curious","Curious"],["learning","Learning"],["learned","Learned"]];
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const slug = s => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "topic";
+const keyOf = id => id.replace(/\//g,"~");
+const hashOf = id => "t-" + id.replace(/\//g,"--");
+const fmtDate = iso => { try{ return new Date(iso).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}); }catch(e){ return ""; } };
+const chev = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M9 6l6 6-6 6"/></svg>';
+
+const ICONS = {
+  NS:'<circle cx="12" cy="12" r="1.7" fill="currentColor"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(120 12 12)"/>',
+  MA:'<path d="M17.5 5H6.5l6.5 7-6.5 7h11"/>',
+  CT:'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',
+  EN:'<circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  HM:'<path d="M2.5 12.5h4.5l2-4.5 3 9 2.2-4.5h7.3"/>',
+  SS:'<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M2.5 20c0-3.4 2.5-6 5.5-6s5.5 2.6 5.5 6M14.5 20c0-2.6 1.3-5 3.5-5s3.5 2.2 3.5 5"/>',
+  HU:'<path d="M3 9l9-5 9 5M5.5 9v9M10 9v9M14 9v9M18.5 9v9M3 20.5h18"/>',
+  AR:'<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.9 2-1.9s-.9-1.9 0-2.8 2.6-.3 4-1.1S21 12.6 21 11c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1.1" fill="currentColor"/><circle cx="11" cy="7" r="1.1" fill="currentColor"/><circle cx="16" cy="8.5" r="1.1" fill="currentColor"/>',
+  BF:'<path d="M3 20.5h18M6 17v-4M11 17V9.5M16 17v-6M4.5 9.5l5-4 4 3 6-4.5"/>',
+  LS:'<path d="M3 11l9-7 9 7M5.5 9.5V20h13V9.5M10 20v-5.5h4V20"/>',
+  SG:'<path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H4.5v1A3 3 0 0 0 8 10M16 6h3.5v1A3 3 0 0 1 16 10M12 13v4M8 21h8M9.5 17h5"/>',
+  ZG:'<path d="M2.5 12h3l2.5-6 4 12 3-9 2 3h4.5"/><circle cx="20" cy="5" r="1.4" fill="currentColor"/>',
+  CR:'<path d="M9 4L3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/>',
+  CS:'<path d="M5 19.5C5 11 10 5 20 4.5c0 10-6 15.5-14.5 15M5 19.5l7.5-7.5"/>',
+  ML:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/>'
+};
+const icon = (code, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[code] || ""}</svg>`;
+const rootOf = n => { while (n.parent) n = n.parent; return n; };
+const dc = n => `--dc:var(--d-${rootOf(n).code})`;
+const leafCount = n => n.children.length ? n.children.reduce((s,c) => s + leafCount(c), 0) : 1;
+
+function addNode(parent, name, extra = {}){
+  const sibs = parent ? parent.children : roots;
+  let base = slug(name), s = base, i = 2;
+  while (sibs.some(c => c.slug === s)) s = base + "-" + (i++);
+  const id = parent ? parent.id + "/" + s : s;
+  const code = parent ? parent.code + "." + String(sibs.length + 1).padStart(2,"0") : extra.code;
+  const n = {id, slug:s, name, level: parent ? parent.level + 1 : 0, parent, children:[], code, blurb: extra.blurb || "", custom: !!extra.customId, customId: extra.customId || null};
+  sibs.push(n); nodes.set(id, n); return n;
+}
+function buildTree(){
+  nodes = new Map(); roots = [];
+  for (const d of DOMAINS){
+    const dn = addNode(null, d.name, {code:d.code, blurb:d.blurb});
+    for (const [sn, subs] of d.s){ const s = addNode(dn, sn); subs.split("|").forEach(t => addNode(s, t)); }
+  }
+  for (const c of [...customs].sort((a,b) => String(a.created).localeCompare(String(b.created)))){
+    const p = nodes.get(c.parent); if (p && p.level < 3) addNode(p, c.name, {customId:c.id});
+  }
+  leafList = [...nodes.values()].filter(n => n.level >= 1);
+  for (const n of nodes.values()){ n._t = tokens(n.name); n._p = tokens(pathOf(n).slice(0,-1).map(x => x.name).join(" ")); }
+}
+
+/* ---------- topic matching ---------- */
+const STOP = new Set("the and for with that this from into about what have just like your you are was were has had not but its how why who can will would could should more most some any all our out get got one two very also than then them they their there here when where which while been being does did doing over under http https www com org net html amp read today think thought really much many way make made need want know new use using used".split(" "));
+const stem = w => w.length > 4 ? w.replace(/ies$/,"y").replace(/(ing|ed|es|s)$/,"") : w;
+function tokens(s){
+  const ws = String(s).toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").match(/[a-z0-9]+/g) || [];
+  return [...new Set(ws.filter(w => w.length >= 3 && !STOP.has(w)).map(stem))];
+}
+function localSuggest(text){
+  const toks = tokens(text), low = " " + text.toLowerCase().replace(/[^a-z0-9]+/g," ") + " ";
+  if (!toks.length) return [];
+  const origOf = {};
+  (text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").match(/[a-z0-9]+/g) || []).forEach(w => { const s = stem(w); if (!origOf[s]) origOf[s] = w; });
+  const out = [];
+  for (const n of nodes.values()){
+    if (n.level === 0) continue;
+    let s = 0; const hits = [];
+    for (const t of toks){
+      if (n._t.includes(t)){ s += 3; hits.push(t); }
+      else if (t.length >= 4 && n._t.some(x => x.length >= 4 && (x.startsWith(t) || t.startsWith(x)))){ s += 1.5; hits.push(t); }
+      else if (n._p.includes(t)) s += .6;
+    }
+    if (!hits.length) continue;
+    const phrase = " " + n.name.toLowerCase().replace(/[^a-z0-9]+/g," ").trim() + " ";
+    if (phrase.length > 5 && low.includes(phrase)) s += 6;
+    s += hits.length / Math.max(n._t.length, 1) * 2;
+    out.push({n, s, why: "Matches " + [...new Set(hits.map(h => origOf[h] || h))].slice(0,4).join(", ")});
+  }
+  return out.sort((a,b) => b.s - a.s || b.n.level - a.n.level).slice(0, 8);
+}
+const findUrl = t => (t.match(/https?:\/\/[^\s<>"]+/i) || [null])[0];
+const pathOf = n => { const a = []; for (let x = n; x; x = x.parent) a.unshift(x); return a; };
+const labelOf = n => pathOf(n).map(x => x.name).join(" › ");
+const descCount = n => n.children.reduce((s,c) => s + 1 + descCount(c), 0);
+
+function noteCounts(){
+  const m = new Map();
+  for (const nt of [...notes, ...clips]){ let n = nt.topic && nodes.get(nt.topic); for (; n; n = n.parent) m.set(n.id, (m.get(n.id)||0) + 1); }
+  return m;
+}
+const statusOf = id => progress.get(id) || "";
+
+/* ---------- sidebar ---------- */
+function renderTree(){
+  const q = $("#q").value.trim().toLowerCase();
+  const counts = noteCounts();
+  const tree = $("#tree");
+  $("#side-count").textContent = q ? "Search results" : `${roots.length} domains · ${nodes.size.toLocaleString()} topics`;
+  if (q){
+    const hits = [...nodes.values()].filter(n => n.name.toLowerCase().includes(q)).slice(0, 80);
+    tree.innerHTML = hits.length ? hits.map(n => {
+      const i = n.name.toLowerCase().indexOf(q);
+      const nm = esc(n.name.slice(0,i)) + "<mark>" + esc(n.name.slice(i, i+q.length)) + "</mark>" + esc(n.name.slice(i+q.length));
+      return `<a class="hit" href="#${hashOf(n.id)}">${nm}<small>${esc(n.parent ? labelOf(n.parent) : "Domain")}</small></a>`;
+    }).join("") : `<p class="hint" style="padding:8px">No topic called “${esc(q)}” yet. Open the closest subject and add it as a sub-topic.</p>`;
+    return;
+  }
+  const li = list => list.map(n => {
+    const has = n.children.length, open = expanded.has(n.id), st = statusOf(n.id), ct = counts.get(n.id);
+    return `<li><div class="row${view.id === n.id ? " on" : ""}" style="--d:${Math.min(n.level,3)}">` +
+      (has ? `<button class="tw" data-tog="${n.id}" aria-expanded="${open}" aria-label="${open?"Collapse":"Expand"} ${esc(n.name)}">${chev}</button>` : `<span class="tw" aria-hidden="true"></span>`) +
+      `<a class="lbl" href="#${hashOf(n.id)}">${n.level === 0 ? `<span class="code-tag" style="color:var(--d-${n.code})">${icon(n.code, 16)}</span>` : ""}${st ? `<span class="dot ${st}" title="${st}"></span>` : ""}<span class="nm">${esc(n.name)}</span>${ct ? `<span class="ct">${ct}</span>` : ""}</a></div>` +
+      (has && open ? `<ul>${li(n.children)}</ul>` : "") + `</li>`;
+  }).join("");
+  tree.innerHTML = `<ul>${li(roots)}</ul>`;
+}
+function saveExpanded(){ try{ localStorage.setItem("atlas-open", JSON.stringify([...expanded])); }catch(e){} }
+
+/* ---------- markdown-lite ---------- */
+function inline(s){
+  return s.replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+function md(src){
+  return esc(src).split(/\n\s*\n/).map(b => {
+    const lines = b.split("\n");
+    if (lines.every(l => /^\s*[-*] /.test(l))) return "<ul>" + lines.map(l => "<li>" + inline(l.replace(/^\s*[-*] /,"")) + "</li>").join("") + "</ul>";
+    if (lines.every(l => /^\s*\d+[.)] /.test(l))) return "<ol>" + lines.map(l => "<li>" + inline(l.replace(/^\s*\d+[.)] /,"")) + "</li>").join("") + "</ol>";
+    if (lines.every(l => /^&gt; ?/.test(l))) return "<blockquote>" + inline(lines.map(l => l.replace(/^&gt; ?/,"")).join("<br>")) + "</blockquote>";
+    if (/^#{1,3} /.test(b)) return "<h4>" + inline(b.replace(/^#{1,3} /,"")) + "</h4>";
+    return "<p>" + inline(lines.join("<br>")) + "</p>";
+  }).join("");
+}
+
+/* ---------- note cards ---------- */
+function noteCard(nt, showTopic = true){
+  const n = nt.topic && nodes.get(nt.topic);
+  const topic = n ? `<a class="tlink" href="#${hashOf(n.id)}">${esc(labelOf(n))}</a>` : (nt.topicLabel ? `<span>${esc(nt.topicLabel)}</span>` : `<span>Unfiled</span>`);
+  const ops = pendingDelete === nt.id
+    ? `<div class="confirm">Delete this note for good? <button class="btn line danger" data-act="del-yes" data-note="${esc(nt.id)}">Delete</button><button class="btn ghost" data-act="del-no">Keep</button></div>`
+    : (canWrite ? `<div class="ops"><button class="btn ghost" data-act="edit" data-note="${esc(nt.id)}">Edit</button><button class="btn ghost danger" data-act="del" data-note="${esc(nt.id)}">Delete</button></div>` : "");
+  return `<article class="note"${n ? ` style="${dc(n)};border-left:3px solid var(--dc)"` : ""}>
+    <div class="meta"><span class="kind ${esc(nt.kind)}">${esc(KINDS[nt.kind] || "Note")}</span>${showTopic ? topic : ""}<span>${fmtDate(nt.updated || nt.created)}</span></div>
+    ${nt.title ? `<h3>${esc(nt.title)}</h3>` : ""}
+    ${nt.body ? `<div class="body">${md(nt.body)}</div>` : ""}
+    ${ops}</article>`;
+}
+function notesBlock(list, emptyHTML, showTopic){
+  if (dbState === "off") return `<div class="banner">Notes are saved through Claude. Open this atlas on claude.ai to read and write them.</div>`;
+  if (dbState === "private") return `<div class="banner">This notebook is private to the person who owns the atlas.</div>`;
+  if (!loaded.notes) return `<div class="banner">${dbState === "slow" ? "Can't reach your notes yet. They will appear here as soon as the connection returns." : "Opening your notebook…"}</div>`;
+  return list.length ? `<div class="notes">${list.map(n => noteCard(n, showTopic)).join("")}</div>` : emptyHTML;
+}
+const byRecent = (a,b) => String(b.updated || b.created).localeCompare(String(a.updated || a.created));
+
+/* ---------- contribute ---------- */
+function sugRow(n, why, isAi){
+  const crumbs = pathOf(n).slice(0,-1).map(x => esc(x.name)).join(" / ");
+  return `<div class="sug" style="${dc(n)}"><div class="sug-main"><div class="crumbs">${crumbs}</div><strong>${esc(n.name)}</strong><small>${isAi ? '<span class="ai-tag">Claude · </span>' : ""}${esc(why)}</small></div>
+    <div class="sug-ops"><button class="btn primary" data-act="file-note" data-topic="${n.id}">Note here</button><button class="btn line" data-act="file-clip" data-topic="${n.id}">Clip here</button><a class="btn ghost" href="#${hashOf(n.id)}">Open</a></div></div>`;
+}
+function contributeView(){
+  const text = contributeText.trim(), url = findUrl(text);
+  const local = text ? localSuggest(text) : [];
+  let ai = "";
+  if (aiState === "busy") ai = `<div class="banner">Claude is reading your text and the atlas…</div>`;
+  else if (aiMsg) ai = `<div class="banner">${esc(aiMsg)}</div>`;
+  else if (aiSug && aiSug.length) ai = `<div class="sugs">${aiSug.map(x => sugRow(x.n, x.why, true)).join("")}</div>`;
+  const aiBtn = sampleApi && aiState !== "denied" ? `<button class="btn line" data-act="ai-suggest" ${!text || aiState === "busy" ? "disabled" : ""}>✦ Ask Claude where it fits</button>` : "";
+  return `<div class="wrap">
+    <section class="thead band" style="--dc:var(--accent)">
+      <div class="eyebrow">Contribute</div><h1>What do you want to add?</h1>
+      <p class="blurb">Type a thought, paste a passage or drop a link. The atlas suggests where it belongs, and you file it in one click.</p>
+      <textarea id="cx" class="cx" aria-label="What you want to contribute" placeholder="e.g. Read that the EU carbon price fell because industry demand dropped — does that weaken the incentive to decarbonize?">${esc(contributeText)}</textarea>
+      <div class="toolbar">${aiBtn}<span class="hint">${url ? "There's a link in here, so “Clip here” will save it as a clipping." : "Matches update as you type."}</span></div>
+    </section>
+    ${(aiSug || aiState === "busy" || aiMsg) ? `<section><div class="sec-head"><h2>Claude suggests</h2></div>${ai}</section>` : ""}
+    <section><div class="sec-head"><h2>Best matches</h2>${text ? `<span class="hint">${local.length} found</span>` : ""}</div>
+      ${!text ? `<div class="empty"><strong>Suggestions appear here</strong>Start typing above. Each match shows where it sits in the atlas, with buttons to file your text there as a note or a clipping.</div>`
+        : local.length ? `<div class="sugs">${local.map(x => sugRow(x.n, x.why, false)).join("")}</div>`
+        : `<div class="empty"><strong>No close matches yet</strong>Try a few more specific words${sampleApi ? ", or ask Claude where it fits" : ""}. You can also open the nearest subject and add a new sub-topic.</div>`}
+    </section></div>`;
+}
+function catalog(){
+  return roots.map(d => d.children.map(s => `${d.name} › ${s.name}: ${s.children.map(c => c.name).join(" | ")}`).join("\n")).join("\n");
+}
+function resolvePath(p){
+  const low = String(p || "").toLowerCase().trim();
+  const exact = [...nodes.values()].find(n => labelOf(n).toLowerCase() === low);
+  if (exact) return exact;
+  const last = low.split("›").pop().trim();
+  return [...nodes.values()].find(n => n.level > 0 && n.name.toLowerCase() === last) || null;
+}
+async function askClaude(){
+  const text = contributeText.trim(); if (!text || !sampleApi) return;
+  aiState = "busy"; aiMsg = ""; aiSug = null; renderMain();
+  const prompt = `You help someone file their own notes into a fixed topic atlas. The atlas has one subject per line, written as "Domain › Subject: topic | topic | ...":\n\n${catalog()}\n\nThey want to file this:\n"""\n${text.slice(0, 4000)}\n"""\n\nPick the 5 best places to file it, best first. Each "path" must be copied exactly from the atlas as "Domain › Subject › Topic", or "Domain › Subject" when no single topic fits. Give a short reason (under 14 words) for each. Reply with JSON only, in this shape: {"suggestions":[{"path":"...","why":"..."}]}`;
+  try{
+    const res = await sampleApi.json(prompt, {modelTier:"quick"});
+    const seen = new Set();
+    aiSug = (res && Array.isArray(res.suggestions) ? res.suggestions : []).map(x => ({n: resolvePath(x.path), why: String(x.why || "")})).filter(x => x.n && !seen.has(x.n.id) && seen.add(x.n.id));
+    aiState = "idle";
+    if (!aiSug.length) aiMsg = "Claude couldn't place this anywhere specific. Try adding a bit more detail.";
+  }catch(e){
+    aiSug = null;
+    if (e && e.code === "not_granted"){ aiState = "denied"; aiMsg = "Claude suggestions are switched off for this page. The matches below still work."; }
+    else { aiState = "idle"; aiMsg = e && e.code === "rate_limited" ? "Claude is busy right now. Wait a moment and try again." : "Claude couldn't answer just now. The matches below still work."; }
+  }
+  renderMain();
+}
+
+/* ---------- clippings ---------- */
+const safeUrl = u => { try{ const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; }catch(e){ return null; } };
+const hostOf = u => { try{ return new URL(u).hostname.replace(/^www\./,""); }catch(e){ return ""; } };
+function clipCard(c, showTopic = true){
+  const url = safeUrl(c.url), host = url ? hostOf(url) : (c.source || "");
+  const n = c.topic && nodes.get(c.topic);
+  const topic = showTopic ? (n ? `<a href="#${hashOf(n.id)}">${esc(labelOf(n))}</a>` : `<span>${esc(c.topicLabel || "Unfiled")}</span>`) : "";
+  const title = c.title || (url ? host : "Untitled clipping");
+  const ops = pendingDelete === c.id
+    ? `<div class="confirm">Delete this clipping? <button class="btn line danger" data-act="clip-del-yes" data-clip="${esc(c.id)}">Delete</button><button class="btn ghost" data-act="del-no">Keep</button></div>`
+    : (canWrite ? `<div class="ops">${url ? `<button class="btn ghost" data-act="copy" data-v="${esc(url)}">Copy link</button>` : ""}<button class="btn ghost" data-act="edit-clip" data-clip="${esc(c.id)}">Edit</button><button class="btn ghost danger" data-act="del" data-note="${esc(c.id)}">Delete</button></div>` : "");
+  return `<article class="clip"${n ? ` style="${dc(n)};border-top:3px solid var(--dc)"` : ""}>
+    <div class="src"><span class="fav" aria-hidden="true"${n ? ` style="background:var(--dc);color:var(--on-d)"` : ""}>${esc((host || "✂")[0].toUpperCase())}</span><span>${esc(host || "Clipping")}${c.source && url ? " · " + esc(c.source) : ""}</span></div>
+    <h3>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(title)} ↗</a>` : esc(title)}</h3>
+    ${c.text ? `<blockquote>${esc(c.text)}</blockquote>` : ""}
+    ${c.note ? `<div class="cnote">${esc(c.note)}</div>` : ""}
+    <div class="meta"><span class="kind ${c.text ? "clipping" : "link"}">${c.text ? "Clipping" : "Link"}</span>${topic}<span>${fmtDate(c.created)}</span></div>
+    ${ops}</article>`;
+}
+function clipsBlock(list, emptyHTML, showTopic){
+  if (dbState !== "ready" || !loaded.clips) return notesBlock([], "", true);
+  return list.length ? `<div class="clips">${list.map(c => clipCard(c, showTopic)).join("")}</div>` : emptyHTML;
+}
+function clipsView(){
+  const q = ($("#cq")?.value || "").trim().toLowerCase();
+  let list = [...clips].sort(byRecent).filter(c => clipFilter === "all" || (clipFilter === "clipping" ? !!c.text : !c.text));
+  if (q) list = list.filter(c => [c.title, c.url, c.text, c.note, c.source, c.topicLabel].join(" ").toLowerCase().includes(q));
+  const empty = clips.length ? `<p class="hint">No clippings match.</p>` : `<div class="empty"><strong>Nothing clipped yet</strong>Open any topic and use “Add a clipping” to save a link or a passage worth keeping. Everything you clip collects here.<button class="btn primary" data-act="wander">Pick a topic to start</button></div>`;
+  return `<div class="wrap">
+    <section class="thead"><div class="eyebrow">Clippings</div><h1>Links and passages you've kept</h1>
+      <div class="filters"><div class="seg" role="group" aria-label="Filter clippings">${[["all","All"],["link","Links"],["clipping","Passages"]].map(([v,l]) => `<button data-act="clip-kind" data-v="${v}" aria-pressed="${clipFilter === v}">${l}</button>`).join("")}</div>
+      <input class="search" id="cq" type="search" placeholder="Search links and passages" aria-label="Search clippings" value="${esc(q)}"></div>
+    </section>${clipsBlock(list, empty, true)}</div>`;
+}
+
+/* ---------- wheel map ---------- */
+const polar = (r, a) => [(r * Math.sin(a)).toFixed(2), (-r * Math.cos(a)).toFixed(2)];
+function arcPath(r1, r2, a0, a1){
+  const L = a1 - a0 > Math.PI ? 1 : 0;
+  const [x0,y0] = polar(r2,a0), [x1,y1] = polar(r2,a1), [x2,y2] = polar(r1,a1), [x3,y3] = polar(r1,a0);
+  return `M${x0} ${y0}A${r2} ${r2} 0 ${L} 1 ${x1} ${y1}L${x2} ${y2}A${r1} ${r1} 0 ${L} 0 ${x3} ${y3}Z`;
+}
+function wheel(){
+  const TAU = Math.PI * 2, total = roots.reduce((s,d) => s + leafCount(d), 0);
+  let a = 0, out = "";
+  for (const d of roots){
+    const span = leafCount(d) / total * TAU, col = `var(--d-${d.code})`;
+    out += `<path class="sb" data-id="${d.id}" d="${arcPath(64,116,a,a+span)}" fill="${col}"/>`;
+    let b = a;
+    for (const s of d.children){
+      const ss = leafCount(s) / total * TAU;
+      out += `<path class="sb" data-id="${s.id}" d="${arcPath(116,170,b,b+ss)}" fill="${col}" fill-opacity=".58"/>`;
+      let c = b;
+      for (const t of (s.children.length ? s.children : [s])){
+        const ts = leafCount(t) / total * TAU, st = statusOf(t.id);
+        const fill = st === "learned" ? "var(--mark)" : col, op = st === "learned" || st === "learning" ? 1 : st === "curious" ? .55 : .2;
+        out += `<path class="sb" data-id="${t.id}" d="${arcPath(173,220,c,c+ts)}" fill="${fill}" fill-opacity="${op}"/>`;
+        c += ts;
+      }
+      b += ss;
+    }
+    const [lx,ly] = polar(90, a + span/2);
+    out += `<text class="sb-code" x="${lx}" y="${ly}">${d.code}</text>`;
+    a += span;
+  }
+  return `<figure class="wheel"><svg viewBox="-224 -224 448 448" role="img" aria-label="Wheel map of all ${nodes.size} topics, coloured by domain and by your progress">${out}
+    <text class="sb-big" id="sb-t1" y="-3">${nodes.size.toLocaleString()}</text><text class="sb-small" id="sb-t2" y="15">topics mapped</text></svg>
+    <figcaption class="legend"><span><i style="background:var(--d-NS)"></i>Inner rings: domains, subjects</span><span><i style="background:var(--d-SS);opacity:.25"></i>Outer ring: topics</span><span><i style="background:var(--d-SS)"></i>Learning</span><span><i style="background:var(--mark)"></i>Learned</span></figcaption></figure>`;
+}
+const clip18 = s => s.length > 20 ? s.slice(0, 19) + "…" : s;
+document.addEventListener("mouseover", e => {
+  const p = e.target.closest && e.target.closest(".sb[data-id]"), t1 = $("#sb-t1"), t2 = $("#sb-t2");
+  if (!t1) return;
+  const n = p && nodes.get(p.dataset.id);
+  if (n){ t1.textContent = clip18(n.name); t2.textContent = n.parent ? clip18(rootOf(n).name) : `${n.children.length} subjects`; }
+  else { t1.textContent = nodes.size.toLocaleString(); t2.textContent = "topics mapped"; }
+});
+
+/* ---------- views ---------- */
+function homeView(){
+  const learned = [...progress.values()].filter(v => v === "learned").length;
+  const learning = [...progress.values()].filter(v => v === "learning").length;
+  const touched = new Set([...progress.keys(), ...notes.map(n => n.topic).filter(Boolean)]).size;
+  const counts = noteCounts();
+  const cards = roots.map(d => {
+    const desc = [...nodes.values()].filter(n => n.id.startsWith(d.id + "/"));
+    const l1 = desc.filter(n => statusOf(n.id) === "learned").length, l2 = desc.filter(n => statusOf(n.id) === "learning").length;
+    const tot = desc.length || 1;
+    return `<a class="dcard" style="--dc:var(--d-${d.code})" href="#${hashOf(d.id)}">
+      <div class="top"><span class="dc-ico">${icon(d.code, 22)}</span><span class="mono">${d.code} · ${d.children.length} subjects</span></div>
+      <h3>${esc(d.name)}</h3><p>${esc(d.blurb)}</p>
+      <div class="meter" aria-hidden="true"><i class="l1" style="width:${l1/tot*100}%"></i><i class="l2" style="width:${l2/tot*100}%"></i></div>
+      <div class="foot"><span>${desc.length} topics</span><span>${counts.get(d.id) || 0} notes · ${l1} learned</span></div></a>`;
+  }).join("");
+  const recent = [...notes].sort(byRecent).slice(0, 4);
+  return `<div class="wrap">
+    <section class="hero"><div class="hero-copy">
+      <div class="eyebrow">A commonplace book for the whole map of knowledge</div>
+      <h1>Everything worth knowing, and <em>what you made of it.</em></h1>
+      <p>Pick any of ${nodes.size.toLocaleString()} topics, from quantum field theory to sourdough. Mark how far you've got, and keep your learnings, thoughts, links and open questions right where they belong.</p>
+      <div class="actions"><a class="btn primary" href="#contribute">Contribute something</a><button class="btn line" data-act="wander">Wander to a random topic</button></div>
+      <p class="hint" style="font-family:var(--f-ui);font-size:13px">Hover the wheel to read it; click any slice to open that topic. The outer ring fills in as you learn.</p>
+    </div>${wheel()}</section>
+    ${dbState === "ready" ? `<div class="ledger"><span><b>${notes.length}</b>notes kept</span><span><b>${clips.length}</b>clippings</span><span><b>${touched}</b>topics touched</span><span><b>${learning}</b>in progress</span><span><b>${learned}</b>learned</span></div>` : ""}
+    <section><div class="sec-head"><h2>Recent notes</h2><a class="btn ghost" href="#journal">Open the journal →</a></div>
+      ${notesBlock(recent, `<div class="empty"><strong>Your journal is empty</strong>Open any topic and write down what you learned, a thought it sparked, or a question to chase later. Notes show up here and on the topic's page.<button class="btn primary" data-act="wander">Pick a topic to start</button></div>`, true)}
+    </section>
+    ${dbState === "ready" && clips.length ? `<section><div class="sec-head"><h2>Recently clipped</h2><a class="btn ghost" href="#clips">All clippings →</a></div>${clipsBlock([...clips].sort(byRecent).slice(0,3), "", true)}</section>` : ""}
+    <section><div class="sec-head"><h2>The domains</h2><span class="hint">Yellow is learned, blue is in progress</span></div><div class="domains">${cards}</div></section>
+  </div>`;
+}
+
+function topicView(n){
+  const counts = noteCounts(), st = statusOf(n.id);
+  const crumbs = pathOf(n).slice(0, -1).map(x => `<a href="#${hashOf(x.id)}">${esc(x.name)}</a><span aria-hidden="true">/</span>`).join("");
+  const own = notes.filter(x => x.topic === n.id || (x.topic && x.topic.startsWith(n.id + "/"))).sort(byRecent);
+  const childWord = n.level === 0 ? "Subjects" : "Sub-topics";
+  const tile = c => { const desc = [...nodes.values()].filter(x => x.id.startsWith(c.id + "/")), tot = desc.length || 1;
+    const l1 = desc.filter(x => statusOf(x.id) === "learned").length, l2 = desc.filter(x => statusOf(x.id) === "learning").length;
+    return `<a class="stile" href="#${hashOf(c.id)}"><div class="row1"><strong>${statusOf(c.id) ? `<span class="dot ${statusOf(c.id)}" style="display:inline-block;margin-right:7px"></span>` : ""}${esc(c.name)}</strong><span class="mono">${c.code.split(".").pop()}</span></div>
+      <div class="meter" aria-hidden="true"><i class="l1" style="width:${l1/tot*100}%"></i><i class="l2" style="width:${l2/tot*100}%"></i></div>
+      <small>${desc.length} topics · ${l1} learned${counts.get(c.id) ? ` · ${counts.get(c.id)} saved` : ""}</small></a>`; };
+  const children = n.children.some(c => c.children.length) ? `<div class="tiles">${n.children.map(tile).join("")}</div>` : n.children.length ? `<div class="chips">${n.children.map(c => `<a class="chip${c.custom ? " custom" : ""}" href="#${hashOf(c.id)}">${statusOf(c.id) ? `<span class="dot ${statusOf(c.id)}"></span>` : ""}${esc(c.name)}${counts.get(c.id) ? `<span class="ct">${counts.get(c.id)}</span>` : ""}</a>`).join("")}</div>` : `<p class="hint" style="margin:0">No ${childWord.toLowerCase()} yet. Add one if you want to go deeper.</p>`;
+  const add = canWrite && n.level < 3 ? `<form class="addform" id="add-form"><input id="add-name" maxlength="80" placeholder="Add a ${n.level === 0 ? "subject" : "sub-topic"} under ${esc(n.name)}" aria-label="New topic name"><button class="btn line" type="submit">Add</button></form>` : "";
+  const rm = n.custom && canWrite ? (pendingRm === n.id
+      ? `<span class="confirm">Remove this topic you added? Its notes stay in your journal. <button class="btn line danger" data-act="rm-yes">Remove</button><button class="btn ghost" data-act="rm-no">Keep</button></span>`
+      : `<button class="btn ghost danger" data-act="rm">Remove topic</button>`) : "";
+  const R = rootOf(n);
+  return `<div class="wrap" style="${dc(n)}">
+    <section class="thead band"><span class="band-ico">${icon(R.code, 190)}</span>
+      <div class="crumbs"><a href="#home">Atlas</a><span aria-hidden="true">/</span>${crumbs}<span class="mono">${n.code}</span></div>
+      ${n.level ? `<a class="band-tag" href="#${hashOf(R.id)}"><span>${icon(R.code, 15)}</span>${esc(R.name)}</a>` : `<span class="band-tag"><span>${icon(R.code, 15)}</span>Domain · ${leafCount(n)} topics</span>`}
+      <h1>${esc(n.name)}</h1>
+      ${n.blurb ? `<p class="blurb">${esc(n.blurb)}</p>` : ""}
+      <div class="toolbar">
+        ${canWrite ? `<div class="seg" role="group" aria-label="Your progress">${STATUSES.map(([v,l]) => `<button data-act="status" data-v="${v}" aria-pressed="${st === v}">${v ? `<span class="dot ${v}"></span>` : ""}${l}</button>`).join("")}</div>` : ""}
+        <button class="btn primary" data-act="new-note" data-topic="${n.id}">Write a note</button>
+        <button class="btn line" data-act="new-clip" data-topic="${n.id}">Add a clipping</button>
+        <a class="btn line" href="https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(n.name)}" target="_blank" rel="noopener noreferrer">Read on Wikipedia ↗</a>
+        ${rm}
+      </div>
+    </section>
+    <section><div class="sec-head"><h2>${childWord}</h2><span class="hint">${descCount(n)} topics below</span></div>${children}${add}</section>
+    <section><div class="sec-head"><h2>Your notes${n.children.length ? " in this area" : ""}</h2></div>
+      ${notesBlock(own, `<div class="empty"><strong>Nothing written on ${esc(n.name)} yet</strong>Capture a definition you finally understood, a link that helped, a thought, or a question you want answered.<button class="btn primary" data-act="new-note" data-topic="${n.id}">Write a note</button></div>`, n.children.length > 0)}
+    </section>
+    <section><div class="sec-head"><h2>Clippings${n.children.length ? " in this area" : ""}</h2></div>
+      ${clipsBlock(clips.filter(x => x.topic === n.id || (x.topic && x.topic.startsWith(n.id + "/"))).sort(byRecent), `<div class="empty"><strong>No links or passages saved here</strong>Keep the article, video or quote that taught you something about ${esc(n.name)}.<button class="btn line" data-act="new-clip" data-topic="${n.id}">Add a clipping</button></div>`, n.children.length > 0)}
+    </section></div>`;
+}
+
+function journalView(){
+  const q = ($("#jq")?.value || "").trim().toLowerCase();
+  let list = [...notes].sort(byRecent).filter(n => kindFilter === "all" || n.kind === kindFilter);
+  if (q) list = list.filter(n => [n.title, n.body, n.topicLabel].join(" ").toLowerCase().includes(q));
+  let body;
+  if (!loaded.notes || dbState !== "ready") body = notesBlock([], "", true);
+  else if (!list.length) body = notes.length ? `<p class="hint">No notes match.</p>` : `<div class="empty"><strong>Start your commonplace book</strong>Open any topic in the atlas and write a learning, thought or question there. Everything you write collects here, newest first.<button class="btn primary" data-act="wander">Pick a topic to start</button></div>`;
+  else {
+    let last = "", out = "";
+    for (const n of list){
+      const m = new Date(n.updated || n.created).toLocaleDateString(undefined,{month:"long",year:"numeric"});
+      if (m !== last){ out += `<div class="month">${esc(m)}</div>`; last = m; }
+      out += noteCard(n, true);
+    }
+    body = `<div class="notes">${out}</div>`;
+  }
+  return `<div class="wrap">
+    <section class="thead"><div class="eyebrow">Journal</div><h1>Everything you've written down</h1>
+      <div class="filters"><div class="seg" role="group" aria-label="Filter by kind">${[["all","All"],...Object.entries(KINDS)].map(([v,l]) => `<button data-act="kind" data-v="${v}" aria-pressed="${kindFilter === v}">${l}</button>`).join("")}</div>
+      <input class="search" id="jq" type="search" placeholder="Search your notes" aria-label="Search your notes" value="${esc(q)}"></div>
+      ${backupBar()}
+    </section>${body}</div>`;
+}
+
+function renderMain(){
+  const a = document.activeElement, main = $("#main");
+  const keep = a && a.id && main.contains(a) && /INPUT|TEXTAREA/.test(a.tagName) ? {id:a.id, v:a.value, s:a.selectionStart, e:a.selectionEnd} : null;
+  let html;
+  if (view.name === "topic"){ const n = nodes.get(view.id); html = n ? topicView(n) : `<div class="wrap"><div class="empty"><strong>That topic isn't in the atlas</strong>It may have been removed.<a class="btn line" href="#home">Back to the atlas</a></div></div>`; }
+  else if (view.name === "journal") html = journalView();
+  else if (view.name === "clips") html = clipsView();
+  else if (view.name === "contribute") html = contributeView();
+  else html = homeView();
+  main.innerHTML = html;
+  if (keep){ const b = document.getElementById(keep.id); if (b){ b.value = keep.v; b.focus(); try{ b.setSelectionRange(keep.s, keep.e); }catch(e){} } }
+  const nc = $("#nav-clips"); nc.removeAttribute("aria-current"); if (view.name === "clips") nc.setAttribute("aria-current","page");
+  const nx = $("#nav-contrib"); nx.removeAttribute("aria-current"); if (view.name === "contribute") nx.setAttribute("aria-current","page");
+  $("#nav-home").toggleAttribute("aria-current", view.name === "home"); if (view.name === "home") $("#nav-home").setAttribute("aria-current","page");
+  $("#nav-journal").toggleAttribute("aria-current", view.name === "journal"); if (view.name === "journal") $("#nav-journal").setAttribute("aria-current","page");
+}
+function render(){ renderTree(); renderMain(); }
+
+/* ---------- routing ---------- */
+function route(){
+  const h = location.hash.slice(1);
+  pendingDelete = pendingRm = null;
+  if (h.startsWith("t-")){
+    const id = h.slice(2).split("--").join("/");
+    view = {name:"topic", id};
+    const n = nodes.get(id);
+    if (n){ for (let x = n.parent; x; x = x.parent) expanded.add(x.id); if (n.children.length) expanded.add(n.id); saveExpanded(); }
+  } else view = {name: ["journal","clips","contribute"].includes(h) ? h : "home", id:null};
+  $("#side").classList.remove("open");
+  render(); window.scrollTo(0, 0);
+  if (view.id) setTimeout(() => document.querySelector("#tree .row.on")?.scrollIntoView({block:"nearest"}), 0);
+}
+window.addEventListener("hashchange", route);
+
+/* ---------- toast ---------- */
+let tt;
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 2600); }
+function writeError(e){
+  if (e && e.code === "invalid_argument") return "Only the owner of this atlas can save changes.";
+  if (e && e.code === "quota_exceeded") return "Your notebook is full. Delete a few old notes to make room.";
+  return "That didn't save. Check your connection and try again.";
+}
+
+/* ---------- editor ---------- */
+function openEditor(note, topicId, pre = {}){
+  if (!canWrite){ toast(dbState === "off" ? "Open this atlas on claude.ai to save notes." : "Notes can't be saved right now."); return; }
+  const n = note ? (note.topic && nodes.get(note.topic)) : (topicId && nodes.get(topicId));
+  const topicText = n ? labelOf(n) : (note?.topicLabel || "");
+  const kind = note?.kind || "learning";
+  $("#overlay").innerHTML = `<div class="scrim" data-act="close-scrim"><form class="sheet" id="note-form" role="dialog" aria-modal="true" aria-labelledby="ed-h">
+    <h2 id="ed-h">${note ? "Edit note" : "New note"}</h2>
+    <div class="field"><span class="lab">Kind</span><div class="seg" role="group" aria-label="Kind of note">${Object.entries(KINDS).map(([v,l]) => `<button type="button" data-act="ed-kind" data-v="${v}" aria-pressed="${kind === v}"><span class="kind ${v}" style="border:0;padding:0">${l}</span></button>`).join("")}</div></div>
+    <div class="field"><label for="ed-topic">Topic</label><input id="ed-topic" value="${esc(topicText)}" readonly></div>
+    <div class="field"><label for="ed-title">Title</label><input id="ed-title" maxlength="160" value="${esc(note?.title || "")}" placeholder="What's the gist?"></div>
+    <div class="field"><label for="ed-body">Note</label><textarea id="ed-body" placeholder="Write freely. **bold**, *italic*, - lists, > quotes and [links](https://…) all work.">${esc(note?.body || pre.body || "")}</textarea><span class="hint">Ctrl + Enter saves.</span></div>
+    <div class="end"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="submit" class="btn primary" id="ed-save">${note ? "Save changes" : "Save note"}</button></div>
+  </form></div>`;
+  const f = $("#note-form"); f.dataset.kind = kind; f.dataset.id = note?.id || ""; f.dataset.created = note?.created || "";
+  setTimeout(() => $("#ed-title").focus(), 0);
+}
+function closeEditor(){ $("#overlay").innerHTML = ""; cxPending = false; }
+function afterSave(){ const fromCx = cxPending; closeEditor(); if (fromCx){ contributeText = ""; aiSug = null; aiMsg = ""; location.hash = "journal"; } }
+function findTopic(tText){
+  const t = tText.toLowerCase();
+  return [...nodes.values()].find(x => labelOf(x).toLowerCase() === t) || [...nodes.values()].find(x => x.name.toLowerCase() === t);
+}
+function openClipEditor(clip, topicId, pre = {}){
+  if (!canWrite){ toast(dbState === "off" ? "Open this atlas on claude.ai to save clippings." : "Clippings can't be saved right now."); return; }
+  const n = clip ? (clip.topic && nodes.get(clip.topic)) : (topicId && nodes.get(topicId));
+  const topicText = n ? labelOf(n) : (clip?.topicLabel || "");
+  $("#overlay").innerHTML = `<div class="scrim" data-act="close-scrim"><form class="sheet" id="clip-form" role="dialog" aria-modal="true" aria-labelledby="cl-h">
+    <h2 id="cl-h">${clip ? "Edit clipping" : "New clipping"}</h2>
+    <div class="field"><label for="cl-url">Link</label><input id="cl-url" type="url" inputmode="url" value="${esc(clip?.url || pre.url || "")}" placeholder="https://…"><span class="hint">Paste a link, a passage below, or both.</span></div>
+    <div class="field"><label for="cl-title">Title</label><input id="cl-title" maxlength="200" value="${esc(clip?.title || "")}" placeholder="What is it?"></div>
+    <div class="field"><label for="cl-text">Passage</label><textarea class="short" id="cl-text" placeholder="Paste the words worth keeping">${esc(clip?.text || pre.text || "")}</textarea></div>
+    <div class="field"><label for="cl-source">Source</label><input id="cl-source" maxlength="160" value="${esc(clip?.source || "")}" placeholder="Book, author, podcast or site"></div>
+    <div class="field"><label for="cl-topic">Topic</label><input id="cl-topic" value="${esc(topicText)}" readonly></div>
+    <div class="field"><label for="cl-note">Why you kept it</label><input id="cl-note" maxlength="400" value="${esc(clip?.note || "")}" placeholder="Optional"></div>
+    <div class="end"><button type="button" class="btn ghost" data-act="close">Cancel</button><button type="submit" class="btn primary" id="cl-save">${clip ? "Save changes" : "Save clipping"}</button></div>
+  </form></div>`;
+  const f = $("#clip-form"); f.dataset.id = clip?.id || ""; f.dataset.created = clip?.created || "";
+  setTimeout(() => $("#cl-url").focus(), 0);
+}
+async function saveClip(f){
+  const rawUrl = $("#cl-url").value.trim(), text = $("#cl-text").value.trim(), title = $("#cl-title").value.trim();
+  const url = rawUrl ? safeUrl(/^https?:\/\//i.test(rawUrl) ? rawUrl : "https://" + rawUrl) : "";
+  if (rawUrl && !url){ toast("That link doesn't look right. It should start with https://"); return; }
+  if (!url && !text && !title){ toast("Add a link or a passage first."); return; }
+  const tText = $("#cl-topic").value.trim(), match = tText ? findTopic(tText) : null, now = new Date().toISOString();
+  const doc = {url: url || "", title, text, source:$("#cl-source").value.trim(), note:$("#cl-note").value.trim(), topic: match ? match.id : null, topicLabel: match ? labelOf(match) : tText, created: f.dataset.created || now, updated: now};
+  const btn = $("#cl-save"); btn.disabled = true;
+  try{
+    if (f.dataset.id) await db.collection("clips").doc(f.dataset.id).set(doc);
+    else await db.collection("clips").add(doc);
+    afterSave(); toast(f.dataset.id ? "Clipping updated" : "Clipping saved");
+  }catch(e){ btn.disabled = false; toast(writeError(e)); }
+}
+async function saveNote(f){
+  const title = $("#ed-title").value.trim(), body = $("#ed-body").value.trim(), tText = $("#ed-topic").value.trim();
+  if (!title && !body){ toast("Write a title or a few words first."); return; }
+  const match = [...nodes.values()].find(x => labelOf(x).toLowerCase() === tText.toLowerCase()) || [...nodes.values()].find(x => x.name.toLowerCase() === tText.toLowerCase());
+  const now = new Date().toISOString();
+  const doc = {kind:f.dataset.kind, title, body, topic: match ? match.id : null, topicLabel: match ? labelOf(match) : tText, created: f.dataset.created || now, updated: now};
+  const btn = $("#ed-save"); btn.disabled = true;
+  try{
+    if (f.dataset.id) await db.collection("notes").doc(f.dataset.id).set(doc);
+    else await db.collection("notes").add(doc);
+    afterSave(); toast(f.dataset.id ? "Note updated" : "Note saved");
+  }catch(e){ btn.disabled = false; toast(writeError(e)); }
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", async e => {
+  const sb = e.target.closest(".sb[data-id]");
+  if (sb){ location.hash = hashOf(sb.dataset.id); return; }
+  const tog = e.target.closest("[data-tog]");
+  if (tog){ const id = tog.dataset.tog; expanded.has(id) ? expanded.delete(id) : expanded.add(id); saveExpanded(); renderTree(); return; }
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const act = el.dataset.act;
+  if (act === "close-scrim" && e.target !== el) return;
+  switch (act){
+    case "drawer": $("#side").classList.toggle("open"); break;
+    case "close": case "close-scrim": closeEditor(); break;
+    case "new-note": { const t = el.dataset.topic || (view.name === "topic" ? view.id : null); t && nodes.get(t) ? openEditor(null, t) : toast("Open a topic to write a note there."); break; }
+    case "edit": openEditor(notes.find(n => n.id === el.dataset.note)); break;
+    case "ed-kind": $("#note-form").dataset.kind = el.dataset.v; el.parentElement.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b === el)); break;
+    case "del": pendingDelete = el.dataset.note; renderMain(); break;
+    case "del-no": pendingDelete = null; renderMain(); break;
+    case "del-yes": try{ await db.collection("notes").doc(el.dataset.note).delete(); pendingDelete = null; toast("Note deleted"); }catch(err){ toast(writeError(err)); } break;
+    case "kind": kindFilter = el.dataset.v; renderMain(); break;
+    case "clip-kind": clipFilter = el.dataset.v; renderMain(); break;
+    case "ai-suggest": askClaude(); break;
+    case "export": exportBackup(); break;
+    case "import-no": pendingImport = null; renderMain(); break;
+    case "import-yes": try{ db.importData(pendingImport.data); pendingImport = null; buildTree(); render(); toast("Backup restored"); }catch(err){ toast(writeError(err)); } break;
+    case "file-note": { const t = contributeText.trim(); openEditor(null, el.dataset.topic, {body: t}); if ($("#note-form")) cxPending = true; break; }
+    case "file-clip": { const t = contributeText.trim(), u = findUrl(t); openClipEditor(null, el.dataset.topic, {url: u || "", text: (u ? t.replace(u, "") : t).trim()}); if ($("#clip-form")) cxPending = true; break; }
+    case "new-clip": { const t = el.dataset.topic || (view.name === "topic" ? view.id : null); t && nodes.get(t) ? openClipEditor(null, t) : toast("Open a topic to clip something there."); break; }
+    case "edit-clip": openClipEditor(clips.find(c => c.id === el.dataset.clip)); break;
+    case "clip-del-yes": try{ await db.collection("clips").doc(el.dataset.clip).delete(); pendingDelete = null; toast("Clipping deleted"); }catch(err){ toast(writeError(err)); } break;
+    case "copy": try{ await navigator.clipboard.writeText(el.dataset.v); toast("Link copied"); }catch(err){ toast(el.dataset.v); } break;
+    case "wander": { const pool = leafList.filter(n => !n.children.length); location.hash = hashOf(pool[Math.floor(Math.random()*pool.length)].id); break; }
+    case "status": {
+      const id = view.id, v = el.dataset.v, prev = statusOf(id);
+      if (v === prev) break;
+      v ? progress.set(id, v) : progress.delete(id); render();
+      try{ const ref = db.doc("progress/" + keyOf(id)); v ? await ref.set({topic:id, status:v, updated:new Date().toISOString()}) : await ref.delete(); }
+      catch(err){ prev ? progress.set(id, prev) : progress.delete(id); render(); toast(writeError(err)); }
+      break; }
+    case "rm": pendingRm = view.id; renderMain(); break;
+    case "rm-no": pendingRm = null; renderMain(); break;
+    case "rm-yes": {
+      const n = nodes.get(view.id); if (!n) break;
+      const ids = [n, ...[...nodes.values()].filter(x => x.id.startsWith(n.id + "/"))].filter(x => x.customId).map(x => x.customId);
+      const parent = n.parent;
+      try{ for (const cid of ids) await db.collection("custom").doc(cid).delete(); toast("Topic removed"); location.hash = parent ? hashOf(parent.id) : "home"; }
+      catch(err){ toast(writeError(err)); }
+      break; }
+  }
+});
+document.addEventListener("submit", async e => {
+  e.preventDefault();
+  if (e.target.id === "note-form") return saveNote(e.target);
+  if (e.target.id === "clip-form") return saveClip(e.target);
+  if (e.target.id === "add-form"){
+    const name = $("#add-name").value.trim(); if (!name) return;
+    const n = nodes.get(view.id);
+    if (n.children.some(c => c.name.toLowerCase() === name.toLowerCase())){ toast(`${name} is already here.`); return; }
+    try{ await db.collection("custom").add({parent:n.id, name, created:new Date().toISOString()}); $("#add-name").value = ""; expanded.add(n.id); saveExpanded(); toast(`Added ${name}`); }
+    catch(err){ toast(writeError(err)); }
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape"){ if ($("#overlay").innerHTML) closeEditor(); else $("#side").classList.remove("open"); }
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && $("#note-form")) saveNote($("#note-form"));
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && $("#clip-form")) saveClip($("#clip-form"));
+});
+$("#q").addEventListener("input", renderTree);
+document.addEventListener("change", e => { if (e.target.id === "import-file" && e.target.files[0]) readBackup(e.target.files[0]); });
+let cxTimer;
+document.addEventListener("input", e => {
+  if (e.target.id === "jq" || e.target.id === "cq") renderMain();
+  if (e.target.id === "cx"){ contributeText = e.target.value; if (aiSug || aiMsg){ aiSug = null; aiMsg = ""; } clearTimeout(cxTimer); cxTimer = setTimeout(renderMain, 180); }
+});
+
+/* ---------- storage ---------- */
+// Outside claude.ai (the GitHub Pages web app) everything is kept in this browser.
+let localMode = false, pendingImport = null;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function makeLocalDb(){
+  const KEY = "commonplace-atlas-v1";
+  let store = {};
+  try{ store = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }catch(e){ store = {}; }
+  const subs = {};
+  const meta = {fromCache:false, hasPendingWrites:false};
+  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){ throw {code:"quota_exceeded", message:"Browser storage is full"}; } };
+  const snap = col => { const docs = Object.entries(store[col] || {}).map(([id, d]) => ({id, exists:true, data: () => d, metadata: meta})); return {docs, size: docs.length, empty: !docs.length, metadata: meta, docChanges: () => []}; };
+  const emit = col => (subs[col] || []).forEach(f => f(snap(col)));
+  const docRef = (col, id) => ({id,
+    set: async d => { (store[col] || (store[col] = {}))[id] = JSON.parse(JSON.stringify(d)); save(); emit(col); },
+    delete: async () => { if (store[col]) delete store[col][id]; save(); emit(col); }});
+  const colRef = col => ({
+    doc: id => docRef(col, id || uid()),
+    add: async d => { const r = docRef(col, uid()); await r.set(d); return r; },
+    onSnapshot: next => { (subs[col] || (subs[col] = [])).push(next); setTimeout(() => next(snap(col)), 0); return () => { subs[col] = subs[col].filter(f => f !== next); }; }});
+  window.addEventListener("storage", e => { if (e.key === KEY){ try{ store = JSON.parse(e.newValue || "{}") || {}; }catch(_){} Object.keys(subs).forEach(emit); } });
+  return {
+    collection: colRef,
+    doc: path => { const [c, id] = path.split("/"); return docRef(c, id); },
+    exportJSON: () => JSON.stringify({app:"commonplace-atlas", version:1, exported: new Date().toISOString(), data: store}, null, 2),
+    importData: data => { store = data || {}; save(); Object.keys(subs).forEach(emit); }
+  };
+}
+function exportBackup(){
+  const blob = new Blob([db.exportJSON()], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `commonplace-atlas-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast("Backup downloaded");
+}
+function readBackup(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const obj = JSON.parse(r.result);
+      if (!obj || obj.app !== "commonplace-atlas" || typeof obj.data !== "object") throw 0;
+      const d = obj.data, count = k => Object.keys(d[k] || {}).length;
+      pendingImport = {data: d, when: obj.exported, summary: `${count("notes")} notes, ${count("clips")} clippings, ${count("progress")} progress marks`};
+      renderMain();
+    }catch(e){ toast("That file isn't a Commonplace Atlas backup."); }
+  };
+  r.readAsText(file);
+}
+function backupBar(){
+  if (!localMode) return "";
+  if (pendingImport) return `<div class="banner confirm" style="justify-content:flex-start">Replace everything saved in this browser with the backup from ${esc(fmtDate(pendingImport.when))} (${esc(pendingImport.summary)})? <button class="btn line danger" data-act="import-yes">Replace</button><button class="btn ghost" data-act="import-no">Cancel</button></div>`;
+  return `<div class="banner" style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center">Your notes are saved in this browser on this device. Download a backup now and then, or to move them to another device.
+    <span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn line" data-act="export">Download backup</button><label class="btn ghost" for="import-file">Restore a backup</label><input id="import-file" type="file" accept="application/json,.json" hidden></span></div>`;
+}
+async function connect(){
+  const C = window.claude;
+  if (!C || !C.use){
+    db = makeLocalDb(); localMode = true;
+  } else {
+    try{ db = await C.use("db"); }catch(e){ db = null; }
+    if (!db){ dbState = "off"; render(); return; }
+    let owner = true;
+    try{ const u = await C.use("user"); if (u) owner = await u.isOwner(); }catch(e){}
+    if (!owner){ dbState = "private"; render(); return; }
+  }
+  canWrite = true; dbState = "ready"; render();
+  if (!localMode){ try{ sampleApi = await C.use("sample"); }catch(e){ sampleApi = null; } }
+  if (view.name === "contribute") renderMain();
+  const slow = setTimeout(() => { if (!loaded.notes){ dbState = "slow"; render(); } }, 10000);
+  const done = k => { loaded[k] = true; if (k === "notes"){ clearTimeout(slow); if (dbState === "slow") dbState = "ready"; } };
+  const fail = k => err => { done(k); toast(err && err.code === "revoked" ? "Access to your notebook ended." : "Lost the connection to your notebook. Reload to reconnect."); render(); };
+  db.collection("notes").onSnapshot(s => { notes = s.docs.map(d => ({id:d.id, ...d.data()})); if (!s.metadata.fromCache) done("notes"); else if (s.size) loaded.notes = true; render(); }, fail("notes"));
+  db.collection("clips").onSnapshot(s => { clips = s.docs.map(d => ({id:d.id, ...d.data()})); if (!s.metadata.fromCache || s.size) loaded.clips = true; render(); }, fail("clips"));
+  db.collection("progress").onSnapshot(s => { progress = new Map(s.docs.map(d => [d.data().topic, d.data().status])); done("progress"); render(); }, fail("progress"));
+  db.collection("custom").onSnapshot(s => { customs = s.docs.map(d => ({id:d.id, ...d.data()})); done("custom"); buildTree(); if (view.name === "topic" && !nodes.get(view.id)) { /* wait for custom to exist */ } render(); }, fail("custom"));
+}
+
+buildTree();
+route();
+connect();
+if (!window.claude && "serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
